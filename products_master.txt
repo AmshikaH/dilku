@@ -1,0 +1,11 @@
+fisname,URL,Fullname
+ING,https://apic.ing.com.au/cds-au/v1/banking/products
+ANZ,https://api.anz/cds-au/v1/banking/products
+peopleschoice,https://ob-public.peopleschoice.com.au/cds-au/v1/banking/products
+AUSTRALIANMILITARYBANKLTD,https://public.open.rslmoney.com.au/cds-au/v1/banking/products
+AustralianMutualBankLtd,https://internetbanking.australianmutual.bank/openbanking/cds-au/v1/banking/products
+AUSTRALIANUNITYBANKLIMITED,https://datasharing-open-banking.australianunity.com.au/OpenBanking/cds-au/v1/banking/products
+AUSWIDEBANKLTD,https://api.auswidebank.com.au/openbanking/cds-au/v1/banking/products
+BandELTD,https://api.bankofus.com.au/OpenBanking/cds-au/v1/banking/products
+BankAustraliaLimited,https://public.cdr-api.bankaust.com.au/cds-au/v1/banking/products
+WOOLWORTHSTEAMBANKLIMITED,https://online.woolworthsteambank.com.au/OpenBanking/cds-au/v1/banking/products
