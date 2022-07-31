@@ -36,7 +36,7 @@ productMasterFileName = "products_master.txt"
 rows = []
 
 # Creating and setting up a logger
-os.makedirs(logDirectoryName,exist_ok=True)
+os.makedirs(logDirectoryName, exist_ok=True)
 logger = logging.getLogger('script')
 logger.setLevel(logging.DEBUG)
 fileHandler = logging.FileHandler(logFileNameFormat.format(logDirectoryName, dateAndTime))
@@ -170,13 +170,17 @@ for x in listOfJsonFiles:
 
 # Writing the processed data to the CSV file
 fields = ['FISNAME', 'ProductID', 'LendingRates', 'LVR-Min', 'LVR-Max', 'applicationFrequency', 'Rate', 'Comparison Rate', 'repaymentType', 'loanPurpose']
-csvFileName = 'MasterProductDetail_DDMMYY.csv'
-with open(csvFileName, 'w', newline='') as csvFile:
+csvFileDirectory = 'csvOutputFiles'
+os.makedirs(csvFileDirectory, exist_ok=True)
+csvFileNameFormat = 'MasterProductDetail_{}.csv'
+csvFileName = csvFileNameFormat.format(date)
+csvFilePath = os.path.join(csvFileDirectory, csvFileName)
+with open(csvFilePath, 'w', newline='') as csvFile:
     logger.info('Writing data to csv file ' + csvFileName + '...')
     csvWriter = csv.writer(csvFile) 
     csvWriter.writerow(fields)
     csvWriter.writerows(rows)
 
+logger.info('CSV file location: ' + os.path.join(str(os.getcwd()), csvFileName))
 logger.info('Finished running script.')
-logger.info('CSV file location: ' + str(os.getcwd()) + csvFileName)
 
