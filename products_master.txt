@@ -1,4 +1,5 @@
 fisname,URL,Fullname
+AMP Bank,https://api.cdr-api.amp.com.au/cds-au/v1/banking/products
 ANZ,https://api.anz/cds-au/v1/banking/products
 peopleschoice,https://ob-public.peopleschoice.com.au/cds-au/v1/banking/products
 AUSTRALIANMILITARYBANKLTD,https://public.open.rslmoney.com.au/cds-au/v1/banking/products
@@ -69,6 +70,18 @@ UBank,https://openbank.api.ubank.com.au/cds-au/v1/banking/products
 NATIONALAUSTRALIABANK,https://openbank.api.nab.com.au/cds-au/v1/banking/products
 NewcastlePermanentBuildingSociety,https://openbank.newcastlepermanent.com.au/cds-au/v1/banking/products
 ORANGECREDITUNIONLTD,https://online.orangecu.com.au/openbanking/cds-au/v1/banking/products
+PayPal Australia,https://api.paypal.com/v1/identity/cds-au/v1/banking/products
+bcu,https://public.cdr-api.bcu.com.au/cds-au/v1/banking/products
+P&N Bank,https://public.cdr-api.pnbank.com.au/cds-au/v1/banking/products
+Police Credit Union Ltd,https://api.policecu.com.au/OpenBanking/cds-au/v1/banking/products
+BankVic,https://ib.bankvic.com.au/openbanking/cds-au/v1/banking/products
+QBANK,https://banking.qbank.com.au/openbanking/cds-au/v1/banking/products
+Qudos Bank,https://public.cdr-api.qudosbank.com.au/cds-au/v1/banking/products
+Queensland Country Bank,https://public.cdr-api.queenslandcountry.bank/cds-au/v1/banking/products
+Rabobank,https://openbanking.api.rabobank.com.au/public/cds-au/v1/banking/products
+MOVE Bank,https://openbanking.movebank.com.au/OpenBanking/cds-au/v1/banking/products
+Thriday,https://public.cdr.thriday.com.au/cds-au/v1/banking/products
+Regional Australia Bank,https://public-data.cdr.regaustbank.io/cds-au/v1/banking/products
 SouthWestSlopesCreditUnionLtd,https://online.swscu.com.au/openbanking/cds-au/v1/banking/products
 SouthernCrossCreditUnion,https://cdr.sccu.com.au/openbanking/cds-au/v1/banking/products
 SummerlandCreditUnion,https://public.cdr-api.summerland.com.au/cds-au/v1/banking/products
