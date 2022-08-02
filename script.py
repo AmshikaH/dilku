@@ -11,31 +11,27 @@ import pandas as pd
 # Date and time when the script is run
 dateAndTime = datetime.datetime.now().strftime('%d_%m_%Y,%H_%M_%S')
 
-# Directory containing the log files
-logDirectoryName = 'logs'
-
-# Format of the log file name
-logFileNameFormat = '{}/script-{}.log'
+# Date when the script is run
+date = datetime.datetime.now().strftime('%d%m%Y')
 
 # URL headers
 headers = {'x-v': '3','x-min-v' : '900'}
 
-# Date when the script is run
-date = datetime.datetime.now().strftime("%d%m%Y")
-
 # Directory containing the json files
-mainDataDir = "jsonFiles"
+mainDataDir = 'jsonFiles'
 
 # Path to directory to store the data dump for the date the script is run
 dataDir = os.path.join(mainDataDir, date)
 
 # File containing the bank API URLs
-productMasterFileName = "products_master.txt"
+productMasterFileName = 'products_master.txt'
 
 # List of rows to be written to the csv file
 rows = []
 
 # Creating and setting up a logger
+logDirectoryName = 'logs'
+logFileNameFormat = '{}/script-{}.log'
 os.makedirs(logDirectoryName, exist_ok=True)
 logger = logging.getLogger('script')
 logger.setLevel(logging.DEBUG)
@@ -48,21 +44,13 @@ consoleHandler.setFormatter(formatter)
 logger.addHandler(fileHandler)
 logger.addHandler(consoleHandler)
 
-# Setting logger to log uncaught exceptions
 def setExceptionHandler(exctype, value, tb):
     logger.exception(''.join(traceback.format_exception(exctype, value, tb)))
-sys.excepthook = setExceptionHandler
-
-logger.info('Script is running...')
-
-# Exits program if master product file is not found
-if not os.path.isfile(productMasterFileName):
-        logger.error('Master product file ' + productMasterFileName + ' with bank API urls not found. Exiting program.')
-        exit()
     
 def dumpProducts():
-    os.makedirs(dataDir, exist_ok=True)
-    productFileNameFormat = "{}/{}-{}-obproducts.json"
+    fileDirectory = os.path.join(dataDir, 'productFiles')
+    os.makedirs(fileDirectory, exist_ok=True)
+    productFilePathFormat = '{}/{}-{}-obproducts.json'
     with open(productMasterFileName) as productMasterFile:
         csvReader = csv.reader(productMasterFile, delimiter=',')
         lineCount = 0
@@ -75,43 +63,44 @@ def dumpProducts():
                 bankAPIUrl = row[1]
                 fisName = row[0].replace(' ', '_')
                 logger.info('Dumping product data for ' + row[0] + ' from ' + bankAPIUrl + '...')
-                productFileName = productFileNameFormat.format(dataDir, fisName, date)
+                productFilePath = productFilePathFormat.format(fileDirectory, fisName, date)
                 response = requests.get(bankAPIUrl, headers=headers)
                 jsonData = json.dumps(response.json())
                 logger.info('Response from ' + bankAPIUrl + ': ' + str(response))
-                with open(productFileName, 'w') as productFile:
+                with open(productFilePath, 'w') as productFile:
                     productFile.write(jsonData)
-                dumpProductDetails(fisName, date, bankAPIUrl)
+                dumpProductDetails(fisName, bankAPIUrl, productFilePath)
                 logger.info('Finished dumping product and product detail data for ' + row[0] + '.')
     logger.info('Finished dumping data.')
 
-def dumpProductDetails(fisName, date, bankAPIUrl):
-    inputProductFileNameFormat = "{}/{}-{}-obproducts.json"
-    outputProductDetailFileNameFormat = "{}/{}-{}-{}_details.json"
-    productDetailUrlFormat = "{}/{}"
-    inputProductFileName = inputProductFileNameFormat.format(dataDir, fisName, date)    
-    with open(inputProductFileName, 'r') as inputProductFile:
+def dumpProductDetails(fisName, bankAPIUrl, inputProductFilePath):
+    fileDirectory = os.path.join(dataDir, 'productDetailFiles')
+    os.makedirs(fileDirectory, exist_ok=True)
+    outputProductDetailFilePathFormat = '{}/{}-{}-{}_details.json'
+    productDetailUrlFormat = '{}/{}' 
+    with open(inputProductFilePath, 'r') as inputProductFile:
         customer = json.load(inputProductFile)
         productData = customer['data']['products']
         for x in range(len(productData)):
             # Only the data for products in the "RESIDENTIAL_MORTGAGES"
-            # product category will be dumped
+            # product category will be dumped.
             if customer['data']['products'][x].get('productCategory') != 'RESIDENTIAL_MORTGAGES':
                 return
             productId = productData[x]['productId']
             logger.info("Dumping product detail data for " + fisName + "'s product with id " + productId + "...")
-            productDetailFileName = outputProductDetailFileNameFormat.format(dataDir, fisName, productId, date)
+            productDetailFilePath = outputProductDetailFilePathFormat.format(fileDirectory, fisName, productId, date)
             productDetailUrl = productDetailUrlFormat.format(bankAPIUrl, productId)
             response = requests.get(productDetailUrl, headers=headers)
             jsonData = json.dumps(response.json())
             logger.info('Response from ' + productDetailUrl + ': ' + str(response))
-            with open(productDetailFileName, 'w') as productDetailFile:
+            with open(productDetailFilePath, 'w') as productDetailFile:
                         productDetailFile.write(jsonData)
 
 def processJsonFile(directoryName, jsonFileName):
     filePath = os.path.join(directoryName, jsonFileName)
     if not os.path.isfile(filePath):
         return
+    logger.info('Processing file ' + jsonFileName + '...')
     with open(filePath) as jsonFile:
         if jsonFileName == 'README.md':
             return
@@ -122,54 +111,102 @@ def processJsonFile(directoryName, jsonFileName):
             logger.error(traceback.format_exc())
             return
 
-        # The brand and product id are mandatory fields;
-        # if either of these are not found, the file being
-        # processed will be skipped.
-        brand = data['data'].get('brand')
+        # The following checks for the mandatory fields for
+        # each product; if any of these are not found, the
+        # file being processed will be skipped.
+        if data.get('data') == None:
+            logger.error('Skipping ' + jsonFileName + ' as one or more mandatory fields are not found.')
+            return
         productId = data['data'].get('productId')
-        if brand == None or productId == None:
+        lastUpdated = data['data'].get('lastUpdated')
+        productCategory = data['data'].get('productCategory')
+        name = data['data'].get('name')
+        brand = data['data'].get('brand')
+        description = data['data'].get('description')
+        if productId == None or lastUpdated == None or productCategory == None or name == None or brand == None or description == None:
+            logger.error('Skipping ' + jsonFileName + ' as one or more mandatory fields are not found.')
             return
 
+        # The following are optional fields;
+        # if any of these are not found, the file would
+        # continue to be processed and the fields will be left empty.
+        effectiveFrom = data['data'].get('effectiveFrom')
+        brandName = data['data'].get('brandName')
+        applicationUri = data['data'].get('applicationUri')
+        
         # Lending rates are an optional field of data;
         # if no lending rates have been given, only the
         # mandatory fields will be written to the file.
         lendingRates = data['data'].get('lendingRates')
         if lendingRates == None or len(lendingRates) == 0:
-            row = [brand, productId, None, '', '', '', '', '', '', '']
+            row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName, applicationUri,
+                   '', '', '', '', '', '', '', '', '', '', description]
             rows.append(row)
             return
 
         # If lending rates data is found, the sub-fields
         # will be processed.
         for i in lendingRates:
-            applicationFrequency = i.get('applicationFrequency')
+            lendingRateType = i.get('lendingRateType')
             rate = i.get('rate')
+
+            # The following checks for the mandatory fields for each
+            # lending rate; if either of these are not found, the
+            # relevant lending rate will be skipped.
+            if lendingRateType == None or rate == None:
+                logger.warn('Skipping a lending rate in file ' + jsonFileName + ' since one or more mandatory '
+                            + 'fields regarding the lending rate are not found.')
+                        
             comparisonRate = i.get('comparisonRate')
+            calculationFrequency = i.get('calculationFrequency')
+            applicationFrequency = i.get('applicationFrequency')
             repaymentType = i.get('repaymentType')
             loanPurpose = i.get('loanPurpose')
-            lvrMin = None
-            lvrMax = None
+            minimumValue = None # mandatory
+            maximumValue = None
+            unitOfMeasure = None # mandatory
             tiers = i.get('tiers')
             if tiers != None and len(tiers) != 0:
                 for x in tiers:
-                    if (x.get('name') == 'Loan to Value Ratio'):
-                        lvrMin = x.get('minimumValue')
-                        lvrMax = x.get('maximumValue')
-            row = [brand, productId, lendingRates.index(i), lvrMin, lvrMax, applicationFrequency, rate, comparisonRate, repaymentType, loanPurpose]
-            rows.append(row)
+                    minimumValue = x.get('minimumValue')
+                    maximumValue = x.get('maximumValue')
+                    unitOfMeasure = x.get('unitOfMeasure')
 
+                    # The following checks for the mandatory fields;
+                    # if either of these are not found, the relevant
+                    # tier will be skipped.
+                    if minimumValue == None or unitOfMeasure == None:
+                        logger.warn('Skipping tier in file ' + jsonFileName + ' since one or more mandatory '
+                                    + 'fields regarding the tier are not found.')
+                        
+                    row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
+                           applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
+                           repaymentType, loanPurpose, minimumValue, maximumValue, unitOfMeasure, description]
+                    rows.append(row)
+
+# Setting logger to log uncaught exceptions
+sys.excepthook = setExceptionHandler
+
+logger.info('Script is running...')
+
+# Exiting the program if the master product file is not found
+if not os.path.isfile(productMasterFileName):
+    logger.error('Master product file ' + productMasterFileName + ' with bank API urls not found. Exiting program.')
+    exit()
+        
 # Dumping product data
 dumpProducts()
 
 # Processing the files
-directoryPath = os.path.join(mainDataDir, date)
+directoryPath = os.path.join(mainDataDir, date, 'productDetailFiles')
 listOfJsonFiles = os.listdir(directoryPath)
 for x in listOfJsonFiles:
-    logger.info('Processing file ' + x + '...')
     processJsonFile(directoryPath, x)
-
+             
 # Writing the processed data to the CSV file
-fields = ['FISNAME', 'ProductID', 'LendingRates', 'LVR-Min', 'LVR-Max', 'applicationFrequency', 'Rate', 'Comparison Rate', 'repaymentType', 'loanPurpose']
+fields = ['productId', 'effectiveFrom', 'lastUpdated', 'productCategory', 'name', 'brand', 'brandName',
+          'applicationUri', 'lendingRateType', 'rate', 'comparisonRate', 'calculationFrequency', 'applicationFrequency',
+          'repaymentType', 'loanPurpose', 'minimumValue', 'maximumValue', 'unitOfMeasure', 'description']
 csvFileDirectory = 'csvOutputFiles'
 os.makedirs(csvFileDirectory, exist_ok=True)
 csvFileNameFormat = 'MasterProductDetail_{}.csv'
