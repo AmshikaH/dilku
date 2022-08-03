@@ -65,8 +65,11 @@ def dumpProducts():
                 logger.info('Dumping product data for ' + row[0] + ' from ' + bankAPIUrl + '...')
                 productFilePath = productFilePathFormat.format(fileDirectory, fisName, date)
                 response = requests.get(bankAPIUrl, headers=headers)
+                logger.info('Response: ' + str(response))
+                if response.status_code != 200:
+                    logger.error('Failed to get product data for ' + fisName + ' due to: ' + response.reason)
+                    continue
                 jsonData = json.dumps(response.json())
-                logger.info('Response from ' + bankAPIUrl + ': ' + str(response))
                 with open(productFilePath, 'w') as productFile:
                     productFile.write(jsonData)
                 dumpProductDetails(fisName, bankAPIUrl, productFilePath)
@@ -91,10 +94,14 @@ def dumpProductDetails(fisName, bankAPIUrl, inputProductFilePath):
             productDetailFilePath = outputProductDetailFilePathFormat.format(fileDirectory, fisName, productId, date)
             productDetailUrl = productDetailUrlFormat.format(bankAPIUrl, productId)
             response = requests.get(productDetailUrl, headers=headers)
+            logger.info('Response: ' + str(response))
+            if response.status_code != 200:
+                logger.error("Failed to get product detail data for " + fisName + "'s product with id " + productId
+                             + " due to: " + response.reason)
+                continue
             jsonData = json.dumps(response.json())
-            logger.info('Response from ' + productDetailUrl + ': ' + str(response))
             with open(productDetailFilePath, 'w') as productDetailFile:
-                        productDetailFile.write(jsonData)
+                productDetailFile.write(jsonData)
 
 def processJsonFile(directoryName, jsonFileName):
     filePath = os.path.join(directoryName, jsonFileName)
