@@ -64,7 +64,14 @@ def dumpProducts():
                 fisName = row[0].replace(' ', '_')
                 logger.info('Dumping product data for ' + row[0] + ' from ' + bankAPIUrl + '...')
                 productFilePath = productFilePathFormat.format(fileDirectory, fisName, date)
-                response = requests.get(bankAPIUrl, headers=headers)
+                try:
+                    response = requests.get(bankAPIUrl, headers=headers)
+                except requests.exceptions.SSLError:
+                    print('Caught')
+                    logger.error('The SSL certificate could not be verified due to the following error:')
+                    logger.error(traceback.format_exc())
+                    logger.info('Retrying with SSL verification disabled.')
+                    response = requests.get(bankAPIUrl, headers=headers, verify=False)
                 logger.info('Response: ' + str(response))
                 if response.status_code != 200:
                     logger.error('Failed to get product data for ' + fisName + ' due to: ' + response.reason)
@@ -83,6 +90,12 @@ def dumpProductDetails(fisName, bankAPIUrl, inputProductFilePath):
     productDetailUrlFormat = '{}/{}' 
     with open(inputProductFilePath, 'r') as inputProductFile:
         customer = json.load(inputProductFile)
+        if customer.get('data') == None:
+            logger.info('Skipping ' + fisName + ' as no product data is found.')
+            return
+        if customer['data'].get('products') == None:
+            logger.info('Skipping ' + fisName + ' as no product data is found.')
+            return
         productData = customer['data']['products']
         for x in range(len(productData)):
             # Only the data for products in the "RESIDENTIAL_MORTGAGES"
@@ -93,7 +106,13 @@ def dumpProductDetails(fisName, bankAPIUrl, inputProductFilePath):
             logger.info("Dumping product detail data for " + fisName + "'s product with id " + productId + "...")
             productDetailFilePath = outputProductDetailFilePathFormat.format(fileDirectory, fisName, productId, date)
             productDetailUrl = productDetailUrlFormat.format(bankAPIUrl, productId)
-            response = requests.get(productDetailUrl, headers=headers)
+            try:
+                response = requests.get(productDetailUrl, headers=headers)
+            except SSLCertVerificationError:
+                logger.logger('The SSL certificate could not be verified due to the following error:')
+                logger.error(traceback.format_exc())
+                logger.info('Retrying with SSL verification disabled.')
+                response = requests.get(productDetailUrl, headers=headers, verify=False)
             logger.info('Response: ' + str(response))
             if response.status_code != 200:
                 logger.error("Failed to get product detail data for " + fisName + "'s product with id " + productId
