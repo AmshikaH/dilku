@@ -5,6 +5,7 @@ import os
 import traceback
 import sys
 import datetime
+import time
 import logging
 import pandas as pd
 
@@ -46,7 +47,34 @@ logger.addHandler(consoleHandler)
 
 def setExceptionHandler(exctype, value, tb):
     logger.exception(''.join(traceback.format_exception(exctype, value, tb)))
-    
+
+def makeRequest(url):
+    for x in range(3):
+        try:
+            try:
+                response = requests.get(url, headers=headers)
+            except requests.exceptions.SSLError:
+                logger.error('The SSL certificate could not be verified due to the following error:')
+                logger.error(traceback.format_exc())
+                logger.info('Retrying with SSL verification disabled.')
+                response = requests.get(url, headers=headers, verify=False)
+            logger.info('Response: ' + str(response))
+            if response.status_code == 200:
+                return response
+            logger.error('Product data request was unsuccessful.')
+            if response.reason != None and len(response.reason) != 0:
+                logger.error('Reason for request failure: ' + response.reason)
+            if not response.status_code in range(400, 500):
+                return None
+        except requests.exceptions.ConnectionError:
+            logger.error('The request failed due to the the following issue with connecting to the bank server:')
+            logger.error(traceback.format_exc())
+        if x == 2:
+            return None 
+        logger.info('Retrying request in 10 seconds...')
+        time.sleep(10)
+        continue
+        
 def dumpProducts():
     fileDirectory = os.path.join(dataDir, 'productFiles')
     os.makedirs(fileDirectory, exist_ok=True)
@@ -59,22 +87,16 @@ def dumpProducts():
                 lineCount += 1
             else:
                 if len(row) == 0:
-                    return
+                    continue
+                if row[0].strip().startswith('#'):
+                    continue
                 bankAPIUrl = row[1]
                 fisName = row[0].replace(' ', '_')
-                logger.info('Dumping product data for ' + row[0] + ' from ' + bankAPIUrl + '...')
+                logger.info('Dumping product data for ' + fisName + ' from ' + bankAPIUrl + '...')
                 productFilePath = productFilePathFormat.format(fileDirectory, fisName, date)
-                try:
-                    response = requests.get(bankAPIUrl, headers=headers)
-                except requests.exceptions.SSLError:
-                    print('Caught')
-                    logger.error('The SSL certificate could not be verified due to the following error:')
-                    logger.error(traceback.format_exc())
-                    logger.info('Retrying with SSL verification disabled.')
-                    response = requests.get(bankAPIUrl, headers=headers, verify=False)
-                logger.info('Response: ' + str(response))
-                if response.status_code != 200:
-                    logger.error('Failed to get product data for ' + fisName + ' due to: ' + response.reason)
+                response = makeRequest(bankAPIUrl)
+                if response == None:
+                    logger.error('Failed to get product data for ' + fisName + '; skipping bank.')
                     continue
                 jsonData = json.dumps(response.json())
                 with open(productFilePath, 'w') as productFile:
@@ -84,6 +106,7 @@ def dumpProducts():
     logger.info('Finished dumping data.')
 
 def dumpProductDetails(fisName, bankAPIUrl, inputProductFilePath):
+    logger.info('Dumping product detail data for ' + fisName + '...')
     fileDirectory = os.path.join(dataDir, 'productDetailFiles')
     os.makedirs(fileDirectory, exist_ok=True)
     outputProductDetailFilePathFormat = '{}/{}-{}-{}_details.json'
@@ -100,27 +123,21 @@ def dumpProductDetails(fisName, bankAPIUrl, inputProductFilePath):
         for x in range(len(productData)):
             # Only the data for products in the "RESIDENTIAL_MORTGAGES"
             # product category will be dumped.
-            if customer['data']['products'][x].get('productCategory') != 'RESIDENTIAL_MORTGAGES':
-                return
+            if productData[x].get('productCategory') != 'RESIDENTIAL_MORTGAGES':
+                continue
             productId = productData[x]['productId']
             logger.info("Dumping product detail data for " + fisName + "'s product with id " + productId + "...")
             productDetailFilePath = outputProductDetailFilePathFormat.format(fileDirectory, fisName, productId, date)
             productDetailUrl = productDetailUrlFormat.format(bankAPIUrl, productId)
-            try:
-                response = requests.get(productDetailUrl, headers=headers)
-            except SSLCertVerificationError:
-                logger.logger('The SSL certificate could not be verified due to the following error:')
-                logger.error(traceback.format_exc())
-                logger.info('Retrying with SSL verification disabled.')
-                response = requests.get(productDetailUrl, headers=headers, verify=False)
-            logger.info('Response: ' + str(response))
-            if response.status_code != 200:
+            response = makeRequest(productDetailUrl)
+            if response == None:
                 logger.error("Failed to get product detail data for " + fisName + "'s product with id " + productId
-                             + " due to: " + response.reason)
+                             + ". Skipping product.")
                 continue
             jsonData = json.dumps(response.json())
             with open(productDetailFilePath, 'w') as productDetailFile:
                 productDetailFile.write(jsonData)
+            logger.info("Finished dumping product detail data for " + fisName + "'s product with id " + productId + "...")
 
 def processJsonFile(directoryName, jsonFileName):
     filePath = os.path.join(directoryName, jsonFileName)
@@ -152,18 +169,24 @@ def processJsonFile(directoryName, jsonFileName):
         if productId == None or lastUpdated == None or productCategory == None or name == None or brand == None or description == None:
             logger.error('Skipping ' + jsonFileName + ' as one or more mandatory fields are not found.')
             return
-
+        
         # The following are optional fields;
         # if any of these are not found, the file would
         # continue to be processed and the fields will be left empty.
         effectiveFrom = data['data'].get('effectiveFrom')
         brandName = data['data'].get('brandName')
         applicationUri = data['data'].get('applicationUri')
-        
+
+        # If the brand name (optional) is not found,
+        # the brand will be taken as the brand name.
+        if brandName == None or len(brandName) == 0:
+            brandName = brand
+           
         # Lending rates are an optional field of data;
         # if no lending rates have been given, only the
         # mandatory fields will be written to the file.
         lendingRates = data['data'].get('lendingRates')
+
         if lendingRates == None or len(lendingRates) == 0:
             row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName, applicationUri,
                    '', '', '', '', '', '', '', '', '', '', description]
@@ -204,11 +227,24 @@ def processJsonFile(directoryName, jsonFileName):
                     if minimumValue == None or unitOfMeasure == None:
                         logger.warn('Skipping tier in file ' + jsonFileName + ' since one or more mandatory '
                                     + 'fields regarding the tier are not found.')
-                        
+                        continue
+
+                    if float(minimumValue) < 1:
+                        minimumValue = (float(minimumValue) * 100)
+                        if maximumValue != None:
+                            maximumValue = (float(maximumValue) * 100)
                     row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                            applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
                            repaymentType, loanPurpose, minimumValue, maximumValue, unitOfMeasure, description]
                     rows.append(row)
+            else:
+                # The tiers are an optional field of data.
+                # If a lending rate has no tiers, the fields
+                # related to tiers will be left empty.
+                row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
+                       applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
+                       repaymentType, loanPurpose, '', '', '', description]
+                rows.append(row)
 
 # Setting logger to log uncaught exceptions
 sys.excepthook = setExceptionHandler
