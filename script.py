@@ -16,7 +16,10 @@ dateAndTime = datetime.datetime.now().strftime('%d_%m_%Y,%H_%M_%S')
 date = datetime.datetime.now().strftime('%d%m%Y')
 
 # URL headers
-headers = {'x-v': '3','x-min-v' : '900'}
+headers = {'x-v': '3', 'x-min-v' : '900'}
+
+# URL params when getting the list of products
+productListParams = {'page-size': '1000', 'product-category': 'RESIDENTIAL_MORTGAGES'}
 
 # Directory containing the json files
 mainDataDir = 'jsonFiles'
@@ -48,16 +51,16 @@ logger.addHandler(consoleHandler)
 def setExceptionHandler(exctype, value, tb):
     logger.exception(''.join(traceback.format_exception(exctype, value, tb)))
 
-def makeRequest(url):
+def makeRequest(url, params):
     for x in range(3):
         try:
             try:
-                response = requests.get(url, headers=headers)
+                response = requests.get(url, headers=headers, params=params)
             except requests.exceptions.SSLError:
                 logger.error('The SSL certificate could not be verified due to the following error:')
                 logger.error(traceback.format_exc())
                 logger.info('Retrying with SSL verification disabled.')
-                response = requests.get(url, headers=headers, verify=False)
+                response = requests.get(url, headers=headers, params=params, verify=False)
             logger.info('Response: ' + str(response))
             if response.status_code == 200:
                 return response
@@ -94,7 +97,7 @@ def dumpProducts():
                 fisName = row[0].replace(' ', '_')
                 logger.info('Dumping product data for ' + fisName + ' from ' + bankAPIUrl + '...')
                 productFilePath = productFilePathFormat.format(fileDirectory, fisName, date)
-                response = makeRequest(bankAPIUrl)
+                response = makeRequest(bankAPIUrl, productListParams)
                 if response == None:
                     logger.error('Failed to get product data for ' + fisName + '; skipping bank.')
                     continue
@@ -121,15 +124,11 @@ def dumpProductDetails(fisName, bankAPIUrl, inputProductFilePath):
             return
         productData = customer['data']['products']
         for x in range(len(productData)):
-            # Only the data for products in the "RESIDENTIAL_MORTGAGES"
-            # product category will be dumped.
-            if productData[x].get('productCategory') != 'RESIDENTIAL_MORTGAGES':
-                continue
             productId = productData[x]['productId']
             logger.info("Dumping product detail data for " + fisName + "'s product with id " + productId + "...")
             productDetailFilePath = outputProductDetailFilePathFormat.format(fileDirectory, fisName, productId, date)
             productDetailUrl = productDetailUrlFormat.format(bankAPIUrl, productId)
-            response = makeRequest(productDetailUrl)
+            response = makeRequest(productDetailUrl, {})
             if response == None:
                 logger.error("Failed to get product detail data for " + fisName + "'s product with id " + productId
                              + ". Skipping product.")
