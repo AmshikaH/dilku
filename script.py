@@ -15,6 +15,9 @@ dateAndTime = datetime.datetime.now().strftime('%d_%m_%Y,%H_%M_%S')
 # Date when the script is run
 date = datetime.datetime.now().strftime('%d%m%Y')
 
+# Timeout value is set to 1s
+timeout = 1
+
 # URL headers
 headers = {'x-v': '3', 'x-min-v' : '900'}
 
@@ -74,8 +77,8 @@ def makeRequest(url, params):
             logger.error(traceback.format_exc())
         if x == 2:
             return None 
-        logger.info('Retrying request in 10 seconds...')
-        time.sleep(10)
+        logger.info('Retrying request in ' + timeout + ' seconds...')
+        time.sleep(timeout)
         continue
         
 def dumpProducts():
