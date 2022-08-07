@@ -98,7 +98,7 @@ RelianceBank,https://ibanking.reliancebank.com.au/rel-openbanking/cds-au/v1/bank
 UnityBank,https://ibanking.unitybank.com.au/OpenBanking/cds-au/v1/banking/products
 BankFirst,https://public.cdr.bankfirst.com.au/cds-au/v1/banking/products
 VoltBank,https://id.cdr.voltbank.com.au/cds-au/v1/banking/products
-WarwickCreditUnionLtd,https://openbanking.wcu.com.au/OpenBanking/cds-au/v1/banking/products
+#WarwickCreditUnionLtd,https://openbanking.wcu.com.au/OpenBanking/cds-au/v1/banking/products
 bankWAW,https://onlinebanking.wawcu.com.au/OpenBanking/cds-au/v1/banking/products
 SocietyOne,https://api.cds.societyone.com.au/cds-au/v1/banking/products
 MoneybyAfterpay,https://api.cds.afterpay.com.au/cds-au/v1/banking/products
