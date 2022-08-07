@@ -232,9 +232,9 @@ def processJsonFile(directoryName, jsonFileName):
                                     + 'fields regarding the tier are not found.')
                         continue
 
-                    if float(minimumValue) < 1:
+                    if unitOfMeasure == 'PERCENT' and float(minimumValue) < 1 and float(minimumValue) != 0:
                         minimumValue = (float(minimumValue) * 100)
-                        if maximumValue != None:
+                        if maximumValue != None and float(maximumValue) < 1:
                             maximumValue = (float(maximumValue) * 100)
                     row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                            applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
@@ -277,12 +277,12 @@ os.makedirs(csvFileDirectory, exist_ok=True)
 csvFileNameFormat = 'MasterProductDetail_{}.csv'
 csvFileName = csvFileNameFormat.format(date)
 csvFilePath = os.path.join(csvFileDirectory, csvFileName)
-with open(csvFilePath, 'w', newline='') as csvFile:
+with open(csvFilePath, 'w', newline='', encoding='utf-8') as csvFile:
     logger.info('Writing data to csv file ' + csvFileName + '...')
     csvWriter = csv.writer(csvFile) 
     csvWriter.writerow(fields)
     csvWriter.writerows(rows)
 
-logger.info('CSV file location: ' + os.path.join(str(os.getcwd()), csvFileName))
+logger.info('CSV file location: ' + os.path.join(str(os.getcwd()), csvFilePath))
 logger.info('Finished running script.')
 
