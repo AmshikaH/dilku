@@ -8,7 +8,7 @@ AUSTRALIANUNITYBANKLIMITED,https://datasharing-open-banking.australianunity.com.
 AUSWIDEBANKLTD,https://api.auswidebank.com.au/openbanking/cds-au/v1/banking/products
 BandELTD,https://api.bankofus.com.au/OpenBanking/cds-au/v1/banking/products
 BankAustraliaLimited,https://public.cdr-api.bankaust.com.au/cds-au/v1/banking/products
-BankofChina,https://api-gateway.bankofchina.com.au/cds-au/v1/banking/products
+#BankofChina,https://api-gateway.bankofchina.com.au/cds-au/v1/banking/products
 MEBank,https://public.openbank.mebank.com.au/cds-au/v1/banking/products
 VirginMoney,https://api.cds.virginmoney.com.au/cds-au/v1/banking/products
 DDHGraham,https://api.cds.ddhgraham.com.au/cds-au/v1/banking/products
@@ -24,7 +24,7 @@ CentralMurrayCreditUnionLimited,https://secure.cmcu.com.au/openbanking/cds-au/v1
 Challenger,https://api.openbanking.challenger.com.au/cds-au/v1/banking/products
 CoastlineCreditUnion,https://public.cdr-api.coastline.com.au/cds-au/v1/banking/products
 Unloan,https://public.api.cdr.unloan.com.au/cds-au/v1/banking/products
-CBA-CommBiz,https://cdr.commbiz.api.commbank.com.au/cbzpublic/cds-au/v1/banking/products
+#CBA-CommBiz,https://cdr.commbiz.api.commbank.com.au/cbzpublic/cds-au/v1/banking/products
 Bankwest,https://open-api.bankwest.com.au/bwpublic/cds-au/v1/banking/products
 CommBank,https://api.commbank.com.au/public/cds-au/v1/banking/products
 Amigo,https://netbank.yourmutual.com.au/ym-OpenBanking/cds-au/v1/banking/products
