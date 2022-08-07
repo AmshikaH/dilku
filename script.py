@@ -210,6 +210,7 @@ def processJsonFile(directoryName, jsonFileName):
             applicationFrequency = i.get('applicationFrequency')
             repaymentType = i.get('repaymentType')
             loanPurpose = i.get('loanPurpose')
+            additionalValue = i.get('additionalValue')
             minimumValue = None # mandatory
             maximumValue = None
             unitOfMeasure = None # mandatory
@@ -234,7 +235,7 @@ def processJsonFile(directoryName, jsonFileName):
                             maximumValue = (float(maximumValue) * 100)
                     row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                            applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
-                           repaymentType, loanPurpose, minimumValue, maximumValue, unitOfMeasure, description]
+                           repaymentType, loanPurpose, additionalValue, minimumValue, maximumValue, unitOfMeasure, description]
                     rows.append(row)
             else:
                 # The tiers are an optional field of data.
@@ -242,7 +243,7 @@ def processJsonFile(directoryName, jsonFileName):
                 # related to tiers will be left empty.
                 row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                        applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
-                       repaymentType, loanPurpose, '', '', '', description]
+                       repaymentType, loanPurpose, additionalValue, '', '', '', description]
                 rows.append(row)
 
 # Setting logger to log uncaught exceptions
@@ -267,7 +268,7 @@ for x in listOfJsonFiles:
 # Writing the processed data to the CSV file
 fields = ['productId', 'effectiveFrom', 'lastUpdated', 'productCategory', 'name', 'brand', 'brandName',
           'applicationUri', 'lendingRateType', 'rate', 'comparisonRate', 'calculationFrequency', 'applicationFrequency',
-          'repaymentType', 'loanPurpose', 'minimumValue', 'maximumValue', 'unitOfMeasure', 'description']
+          'repaymentType', 'loanPurpose', 'additionalValue', 'minimumValue', 'maximumValue', 'unitOfMeasure', 'description']
 csvFileDirectory = 'csvOutputFiles'
 os.makedirs(csvFileDirectory, exist_ok=True)
 csvFileNameFormat = 'MasterProductDetail_{}.csv'
