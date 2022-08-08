@@ -76,8 +76,9 @@ def makeRequest(url, params):
             logger.error('The request failed due to the the following issue with connecting to the bank server:')
             logger.error(traceback.format_exc())
         if x == 2:
-            return None 
-        logger.info('Retrying request in ' + timeout + ' seconds...')
+            return None
+        seconds = 'seconds' if timeout > 1 else 'second'
+        logger.info('Retrying request in ' + str(timeout) + ' ' + seconds + '...')
         time.sleep(timeout)
         continue
         
@@ -191,7 +192,7 @@ def processJsonFile(directoryName, jsonFileName):
 
         if lendingRates == None or len(lendingRates) == 0:
             row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName, applicationUri,
-                   '', '', '', '', '', '', '', '', '', '', description]
+                   '', '', '', '', '', '', '', '', '', '', '', '', description]
             rows.append(row)
             return
 
@@ -214,6 +215,7 @@ def processJsonFile(directoryName, jsonFileName):
             repaymentType = i.get('repaymentType')
             loanPurpose = i.get('loanPurpose')
             additionalValue = i.get('additionalValue')
+            additionalInfo = i.get('additionalInfo')
             minimumValue = None # mandatory
             maximumValue = None
             unitOfMeasure = None # mandatory
@@ -238,7 +240,7 @@ def processJsonFile(directoryName, jsonFileName):
                             maximumValue = (float(maximumValue) * 100)
                     row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                            applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
-                           repaymentType, loanPurpose, additionalValue, minimumValue, maximumValue, unitOfMeasure, description]
+                           repaymentType, loanPurpose, additionalValue, additionalInfo, minimumValue, maximumValue, unitOfMeasure, description]
                     rows.append(row)
             else:
                 # The tiers are an optional field of data.
@@ -246,7 +248,7 @@ def processJsonFile(directoryName, jsonFileName):
                 # related to tiers will be left empty.
                 row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                        applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
-                       repaymentType, loanPurpose, additionalValue, '', '', '', description]
+                       repaymentType, loanPurpose, additionalValue, additionalInfo, '', '', '', description]
                 rows.append(row)
 
 # Setting logger to log uncaught exceptions
@@ -271,7 +273,7 @@ for x in listOfJsonFiles:
 # Writing the processed data to the CSV file
 fields = ['productId', 'effectiveFrom', 'lastUpdated', 'productCategory', 'name', 'brand', 'brandName',
           'applicationUri', 'lendingRateType', 'rate', 'comparisonRate', 'calculationFrequency', 'applicationFrequency',
-          'repaymentType', 'loanPurpose', 'additionalValue', 'minimumValue', 'maximumValue', 'unitOfMeasure', 'description']
+          'repaymentType', 'loanPurpose', 'additionalValue', 'additionalInfo', 'minimumValue', 'maximumValue', 'unitOfMeasure', 'description']
 csvFileDirectory = 'csvOutputFiles'
 os.makedirs(csvFileDirectory, exist_ok=True)
 csvFileNameFormat = 'MasterProductDetail_{}.csv'
