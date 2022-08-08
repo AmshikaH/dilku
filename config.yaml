@@ -1,0 +1,8 @@
+Pattern:
+  repaymentType:
+    INTEREST_ONLY: ["interest only", "i/o", "io", "int only"]
+    PRINCIPAL_AND_INTEREST: ["principal and interest", "p&i", "p & i"]
+  loanPurpose:
+    INVESTMENT: ["inv", "invest", "investor", "investment"]
+    OWNER_OCCUPIED: ["owner occupied", "oo"]
+  
