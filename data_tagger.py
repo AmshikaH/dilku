@@ -42,6 +42,12 @@ repaymentTypeHeader = 'repaymentType'
 # Column name for loan purpose
 loanPurposeHeader = 'loanPurpose'
 
+# Column name for description
+descriptionHeader = 'description'
+
+# Column name for additional info
+additionalInfoHeader = 'additionalInfo'
+
 # Repayment type options
 repaymentTypeOptionOne = 'INTEREST_ONLY'
 repaymentTypeOptionTwo = 'PRINCIPAL_AND_INTEREST'
@@ -78,29 +84,38 @@ with open(configFileName) as configFile:
     configs = yaml.load(configFile, Loader=yaml.FullLoader)
     
 def contains_word(text, word):
-    return bool(re.search(r'\b' + re.escape(word) + r'\b', text))
+    return bool(re.search(r'\b' + re.escape(word) + r'\b', str(text).lower()))
 
-def tagAndFillUsingPattern(df, indicesToCheck, columnWithEmptyValue, columnValueOptionOne, columnValueOptionTwo):
+def tagAndFillUsingPattern(df, indicesToCheck, columnWithEmptyValue, columnValueOptionOne, columnValueOptionTwo, fieldToCheck):
     patternForOptionOne = configs['Pattern'][columnWithEmptyValue][columnValueOptionOne]
     patternForOptionTwo = configs['Pattern'][columnWithEmptyValue][columnValueOptionTwo]
     for i in indicesToCheck:
         filled = False
         for n in patternForOptionOne:
-            if contains_word(df.loc[i, 'description'], n): 
+            if contains_word(df.loc[i, fieldToCheck], n): 
                 df.loc[i, columnWithEmptyValue] = columnValueOptionOne
                 filled = True
                 df.loc[i, tagHeader] = needToFixTag
                 break
         if not filled:
             for n in patternForOptionTwo:
-                if contains_word(df.loc[i, 'description'], n): 
+                if contains_word(df.loc[i, fieldToCheck], n): 
                     df.loc[i, columnWithEmptyValue] = columnValueOptionTwo
                     df.loc[i, tagHeader] = needToFixTag
                     break
-
-def getEmptyIndices(df, header, removeIndices):
-    emptyRepaymentTypeIndices = set(df[df[header].isnull()].index) - removeIndices
+    
+def getEmptyIndices(df, header, removeTagIndices):
+    emptyRepaymentTypeIndices = set(df[df[header].isnull()].index) - removeTagIndices
     return emptyRepaymentTypeIndices
+
+def addNeedToFixTagBasedOnFieldData(df, removeTagIndices, fieldToCheck):
+    try:
+        emptyRepaymentTypeIndices = getEmptyIndices(df, repaymentTypeHeader, removeTagIndices)
+        emptyLoanPurposeIndices = getEmptyIndices(df, loanPurposeHeader, removeTagIndices)
+        tagAndFillUsingPattern(df, emptyRepaymentTypeIndices, repaymentTypeHeader, repaymentTypeOptionOne, repaymentTypeOptionTwo, fieldToCheck)
+        tagAndFillUsingPattern(df, emptyLoanPurposeIndices, loanPurposeHeader, loanPurposeOptionOne, loanPurposeOptionTwo, fieldToCheck)
+    except KeyError:
+        logger.warning('Cannot check field ' + str(fieldToCheck) + ' for data patterns as the field is not found in file.')
     
 def tagFile(fileName):
     if fileName == 'README.md':
@@ -122,11 +137,9 @@ def tagFile(fileName):
         df.loc[i, tagHeader] = removeTag
 
     # Check for patterns and add NEED2FIX tags
-    emptyRepaymentTypeIndices = getEmptyIndices(df, repaymentTypeHeader, removeTagIndices)
-    emptyLoanPurposeIndices = getEmptyIndices(df, loanPurposeHeader, removeTagIndices)
-    tagAndFillUsingPattern(df, emptyRepaymentTypeIndices, repaymentTypeHeader, repaymentTypeOptionOne, repaymentTypeOptionTwo)
-    tagAndFillUsingPattern(df, emptyLoanPurposeIndices, loanPurposeHeader, loanPurposeOptionOne, loanPurposeOptionTwo)
-    
+    addNeedToFixTagBasedOnFieldData(df, removeTagIndices, descriptionHeader)
+    addNeedToFixTagBasedOnFieldData(df, removeTagIndices, additionalInfoHeader)
+
     # Add NeedtoCapture tags
     updatedEmptyRepaymentTypeIndices = getEmptyIndices(df, repaymentTypeHeader, removeTagIndices)
     updatedEmptyLoanPurposeIndices = getEmptyIndices(df, loanPurposeHeader, removeTagIndices)
