@@ -1,8 +1,14 @@
 Pattern:
-  repaymentType:
-    INTEREST_ONLY: ["interest only", "i/o", "io", "int only"]
-    PRINCIPAL_AND_INTEREST: ["principal and interest", "p&i", "p & i"]
-  loanPurpose:
-    INVESTMENT: ["inv", "invest", "investor", "investment"]
-    OWNER_OCCUPIED: ["owner occupied", "oo"]
+  - checkFields: ["description", "additionalInfo", "tierAdditionalInfo", "additionalValue"]
+    overwrite: "False"
+    fillFields:
+      - repaymentType:
+          INTEREST_ONLY: ["interest only", "i/o", "io", "int only"]
+          PRINCIPAL_AND_INTEREST: ["principal and interest", "p&i", "p & i", "principle and interest"]
+      - loanPurpose:
+          INVESTMENT: ["inv", "invest", "investor", "investment"]
+          OWNER_OCCUPIED: ["owner occupied", "oo"]
+          exceptions: 
+            "owner occupied": ["Not available for the purpose of owner occupied"]
+  
   
