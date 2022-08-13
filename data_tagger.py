@@ -74,7 +74,18 @@ with open(configFileName) as configFile:
     configs = yaml.load(configFile, Loader=yaml.FullLoader)
     
 def contains_word(text, word):
-    return bool(re.search(r'\b' + re.escape(word.lower()) + r'\b', str(text).lower()))
+    contains = bool(re.search(r'\b' + re.escape(word.lower()) + r'\b', str(text).lower()))
+    if contains:
+        return contains
+    if '_' in str(text) or '-' in str(text):
+        text = str(text).replace('_', ' ')
+        text = str(text).replace('-', ' ')
+        contains = bool(re.search(r'\b' + re.escape(word.lower()) + r'\b', str(text).lower()))
+    if contains:
+        return contains
+    text = re.sub(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ', str(text))
+    contains = bool(re.search(r'\b' + re.escape(word.lower()) + r'\b', str(text).lower()))
+    return contains
 
 def getEmptyIndices(df, header, removeTagIndices):
     emptyRepaymentTypeIndices = set(df[df[header].isnull()].index) - removeTagIndices
@@ -88,9 +99,14 @@ def addNeedToFixTagBasedOnFieldData(df, removeTagIndices, patterns):
         for fillField in fillFields:
             for field in checkFields:
                 for fieldToFill in fillField.keys():
+                    logger.info('Checking ' + field + ' for ' + fieldToFill + ' data...')
                     if overwrite.lower() == 'true':
+                        logger.info('Overwrite is set to true. Existing data in ' + fieldToFill + ' will be overwritten'
+                                    + ' if relevant information is found in ' + field + '.')
                         indicesToCheck = set(df[fieldToFill].index) - removeTagIndices
                     else:
+                        logger.info('Overwrite is set to false. Any relevant data found in ' + field + ' will be written'
+                                    + ' to ' + fieldToFill + ' only if ' + fieldToFill + ' is empty.')
                         indicesToCheck = getEmptyIndices(df, fieldToFill, removeTagIndices)
                     options = fillField.get(fieldToFill)
                     exceptions = options.get('exceptions')
@@ -149,12 +165,12 @@ def patternExists(df, field, index, pattern):
     return re.search(pattern, df.loc[index, field], re.IGNORECASE)
     
 def updateLVR(df, removeTagIndices, fieldsToCheck):
-    fieldsToCheck = [additionalValueHeader, tierAdditionalInfoHeader, descriptionHeader, additionalInfoHeader]
     rowsToAdd = {}
     emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader, removeTagIndices)
     emptyMaximumValueIndices = getEmptyIndices(df, maximumValueHeader, removeTagIndices)
     emptyLVRIndices = emptyMinimumValueIndices.union(emptyMaximumValueIndices)
     for field in fieldsToCheck:
+        logger.info('Checking ' + field + ' for LVR values...')
         try:
             for i in emptyLVRIndices:
                 tierValues = {}
@@ -260,15 +276,18 @@ def tagFile(fileName):
     df[tagHeader] = None
 
     # Add remove tags
+    logger.info('Adding Remove tags...')
     removeTagIndices = set(df[df[rateHeader].isnull()].index)
     for i in removeTagIndices:
         df.loc[i, tagHeader] = removeTag
     
     # Check for patterns and add NEED2FIX tags
+    logger.info('Checking for patterns specified in config file ' + configFileName + '...')
     patterns = configs['Pattern']
     addNeedToFixTagBasedOnFieldData(df, removeTagIndices, patterns)
 
     # Add NeedtoCapture tags
+    logger.info('Adding NeedtoCapture tags...')
     emptyRepaymentTypeIndices = getEmptyIndices(df, repaymentTypeHeader, removeTagIndices)
     emptyLoanPurposeIndices = getEmptyIndices(df, loanPurposeHeader, removeTagIndices)
     needToCaptureIndices = emptyRepaymentTypeIndices.union(emptyLoanPurposeIndices)
@@ -279,12 +298,16 @@ def tagFile(fileName):
             df.loc[i, tagHeader] = (df.loc[i, tagHeader]) + ', ' + needToCaptureTag
 
     # Update additional value column units
+    logger.info('Updating additionalValue column units...')
     try:
         updateAdditionalValueUnits(df)
     except KeyError:
         logger.warning('Additional value field not found in file. Skipping changing of units from years to months.')
 
-    rowsToAdd = updateLVR(df, removeTagIndices, [])
+    # Update LVR details
+    logger.info('Updating LVR values...')
+    fieldsToCheck = configs['LVR'].get('fieldsToCheck')
+    rowsToAdd = updateLVR(df, removeTagIndices, fieldsToCheck)
     dfLength = len(df.index)
     for rowIndex in rowsToAdd:
         write = False
