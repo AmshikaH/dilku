@@ -23,16 +23,8 @@ configFileName = 'config.yaml'
 # Header for the column with the tags
 tagHeader = 'tags'
 
-# For rows with empty lending rates
-removeTag = 'Remove'
-
-# For rows with empty repaymentType or loanPurpose,
-# but which are identifiable using other rows.
-needToFixTag = 'NEED2FIX'
-
-# For rows with empty repaymentType or loanPurpose,
-# even after analysing the description.
-needToCaptureTag = 'NeedtoCapture'
+# Tags
+goodTag = 'Good'
 
 # Column names
 rateHeader = 'rate'
@@ -45,6 +37,7 @@ minimumValueHeader = 'minimumValue'
 maximumValueHeader = 'maximumValue'
 unitOfMeasureHeader = 'unitOfMeasure'
 tierAdditionalInfoHeader = 'tierAdditionalInfo'
+lendingRateTypeHeader = 'lendingRateType'
 
 os.makedirs(directoryWithFilesToTag, exist_ok=True)
 
@@ -87,11 +80,10 @@ def contains_word(text, word):
     contains = bool(re.search(r'\b' + re.escape(word.lower()) + r'\b', str(text).lower()))
     return contains
 
-def getEmptyIndices(df, header, removeTagIndices):
-    emptyRepaymentTypeIndices = set(df[df[header].isnull()].index) - removeTagIndices
-    return emptyRepaymentTypeIndices
+def getEmptyIndices(df, header):
+    return set(df[df[header].isnull()].index)
 
-def addNeedToFixTagBasedOnFieldData(df, removeTagIndices, patterns):
+def addNeedToFixTagBasedOnFieldData(df, patterns):
     for pattern in patterns:
         checkFields = pattern.get('checkFields')
         overwrite = pattern.get('overwrite')
@@ -103,11 +95,11 @@ def addNeedToFixTagBasedOnFieldData(df, removeTagIndices, patterns):
                     if overwrite.lower() == 'true':
                         logger.info('Overwrite is set to true. Existing data in ' + fieldToFill + ' will be overwritten'
                                     + ' if relevant information is found in ' + field + '.')
-                        indicesToCheck = set(df[fieldToFill].index) - removeTagIndices
+                        indicesToCheck = set(df[fieldToFill].index)
                     else:
                         logger.info('Overwrite is set to false. Any relevant data found in ' + field + ' will be written'
                                     + ' to ' + fieldToFill + ' only if ' + fieldToFill + ' is empty.')
-                        indicesToCheck = getEmptyIndices(df, fieldToFill, removeTagIndices)
+                        indicesToCheck = getEmptyIndices(df, fieldToFill)
                     options = fillField.get(fieldToFill)
                     exceptions = options.get('exceptions')
                     exceptionKeys = []
@@ -132,7 +124,6 @@ def addNeedToFixTagBasedOnFieldData(df, removeTagIndices, patterns):
                                             if not isException:
                                                 df.loc[i, fieldToFill] = option
                                                 filled = True
-                                                df.loc[i, tagHeader] = needToFixTag
                                                 break
                     except KeyError:
                         logger.warning('Cannot check field ' + field + ' for data patterns as the field is not found in file.')
@@ -164,10 +155,10 @@ def getValue(df, field, index, pattern):
 def patternExists(df, field, index, pattern):
     return re.search(pattern, df.loc[index, field], re.IGNORECASE)
     
-def updateLVR(df, removeTagIndices, fieldsToCheck):
+def updateLVR(df, fieldsToCheck):
     rowsToAdd = {}
-    emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader, removeTagIndices)
-    emptyMaximumValueIndices = getEmptyIndices(df, maximumValueHeader, removeTagIndices)
+    emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader)
+    emptyMaximumValueIndices = getEmptyIndices(df, maximumValueHeader)
     emptyLVRIndices = emptyMinimumValueIndices.union(emptyMaximumValueIndices)
     for field in fieldsToCheck:
         logger.info('Checking ' + field + ' for LVR values...')
@@ -274,28 +265,11 @@ def tagFile(fileName):
         df = pd.read_csv(os.path.join(directoryWithFilesToTag, fileName), encoding='cp1252')
         
     df[tagHeader] = None
-
-    # Add remove tags
-    logger.info('Adding Remove tags...')
-    removeTagIndices = set(df[df[rateHeader].isnull()].index)
-    for i in removeTagIndices:
-        df.loc[i, tagHeader] = removeTag
     
-    # Check for patterns and add NEED2FIX tags
+    # Check for patterns
     logger.info('Checking for patterns specified in config file ' + configFileName + '...')
     patterns = configs['Pattern']
-    addNeedToFixTagBasedOnFieldData(df, removeTagIndices, patterns)
-
-    # Add NeedtoCapture tags
-    logger.info('Adding NeedtoCapture tags...')
-    emptyRepaymentTypeIndices = getEmptyIndices(df, repaymentTypeHeader, removeTagIndices)
-    emptyLoanPurposeIndices = getEmptyIndices(df, loanPurposeHeader, removeTagIndices)
-    needToCaptureIndices = emptyRepaymentTypeIndices.union(emptyLoanPurposeIndices)
-    for i in needToCaptureIndices:
-        if df.loc[i, tagHeader] is None:
-            df.loc[i, tagHeader] = needToCaptureTag
-        else:
-            df.loc[i, tagHeader] = (df.loc[i, tagHeader]) + ', ' + needToCaptureTag
+    addNeedToFixTagBasedOnFieldData(df, patterns)
 
     # Update additional value column units
     logger.info('Updating additionalValue column units...')
@@ -307,17 +281,25 @@ def tagFile(fileName):
     # Update LVR details
     logger.info('Updating LVR values...')
     fieldsToCheck = configs['LVR'].get('fieldsToCheck')
-    rowsToAdd = updateLVR(df, removeTagIndices, fieldsToCheck)
+    rowsToAdd = updateLVR(df, fieldsToCheck)
     dfLength = len(df.index)
     for rowIndex in rowsToAdd:
         write = False
         row = df.iloc[rowIndex]
         values = rowsToAdd.get(rowIndex)
-        minValue = df.loc[i, minimumValueHeader]
-        if pd.isnull(minValue) and values.get(minimumValueHeader) is not None:
+        minValue = df.loc[rowIndex, minimumValueHeader]
+        maxValue = df.loc[rowIndex, maximumValueHeader]
+        unitOfMeasure = df.loc[rowIndex, unitOfMeasureHeader]
+        if pd.isnull(minValue) and pd.isnull(maxValue):
+            df.loc[rowIndex, minimumValueHeader] = values.get(minimumValueHeader)
+            df.loc[rowIndex, maximumValueHeader] = values.get(maximumValueHeader)
+            df.loc[rowIndex, unitOfMeasureHeader] = values.get(unitOfMeasureHeader)
+            continue
+        if unitOfMeasure != 'PERCENT':
             write = True
-        maxValue = df.loc[i, maximumValueHeader]
-        if pd.isnull(maxValue) and values.get(maximumValueHeader) is not None:
+        elif pd.isnull(minValue) and values.get(minimumValueHeader) is not None:
+            write = True
+        elif pd.isnull(maxValue) and values.get(maximumValueHeader) is not None:
             write = True
         if write:
             df.loc[dfLength] = row
@@ -326,6 +308,12 @@ def tagFile(fileName):
             df.loc[dfLength, unitOfMeasureHeader] = values.get(unitOfMeasureHeader)
             dfLength += 1
 
+    # Add Good tag
+    logger.info('Adding Good tags...')
+    goodTagIndices = set(df[lendingRateTypeHeader].index) - getEmptyIndices(df, loanPurposeHeader) - getEmptyIndices(df, repaymentTypeHeader) - getEmptyIndices(df, lendingRateTypeHeader)
+    for i in goodTagIndices:
+        df.loc[i, tagHeader] = goodTag
+    
     os.makedirs(os.path.join(directoryWithFilesToTag, directoryWithTaggedFiles), exist_ok=True)
     taggedFileName = 'Tagged_' + fileName
     df.to_csv(os.path.join(directoryWithFilesToTag, directoryWithTaggedFiles, taggedFileName), index=False)
