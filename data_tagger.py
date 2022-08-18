@@ -38,6 +38,7 @@ maximumValueHeader = 'maximumValue'
 unitOfMeasureHeader = 'unitOfMeasure'
 tierAdditionalInfoHeader = 'tierAdditionalInfo'
 lendingRateTypeHeader = 'lendingRateType'
+productIdHeader = 'productId'
 
 os.makedirs(directoryWithFilesToTag, exist_ok=True)
 
@@ -154,7 +155,15 @@ def getValue(df, field, index, pattern):
 
 def patternExists(df, field, index, pattern):
     return re.search(pattern, df.loc[index, field], re.IGNORECASE)
-    
+
+def updateAdditionalValue(df):
+    additionalValueEmptyIndices = getEmptyIndices(df, additionalValueHeader)
+    for i in additionalValueEmptyIndices:
+        if df.loc[i, lendingRateTypeHeader] == 'FIXED':
+            if patternExists(df, productIdHeader, i, 'CREDITUNIONSA_HL_.*F[0-9][0-9]*'):
+                additionalValue = int(getValue(df, productIdHeader, i, 'F[0-9][0-9]*')) * 12
+                df.loc[i, additionalValueHeader] = 'P' + str(additionalValue) + 'M'
+        
 def updateLVR(df, fieldsToCheck):
     rowsToAdd = {}
     emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader)
@@ -275,9 +284,12 @@ def tagFile(fileName):
     logger.info('Updating additionalValue column units...')
     try:
         updateAdditionalValueUnits(df)
+        # Update additional value for fixed lending rate type
+        logger.info('Checking productId for additional value data for fixed lending rate type...')
+        updateAdditionalValue(df)
     except KeyError:
-        logger.warning('Additional value field not found in file. Skipping changing of units from years to months.')
-
+        logger.warning('Additional value field not found in file. Skipping the update of additional values.')
+    
     # Update LVR details
     logger.info('Updating LVR values...')
     fieldsToCheck = configs['LVR'].get('fieldsToCheck')
