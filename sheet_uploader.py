@@ -7,6 +7,7 @@ import csv
 import logging
 import sys
 import traceback
+import yaml
 
 # Date when the script is run 
 date = datetime.datetime.now().strftime('%d%m%Y')
@@ -14,9 +15,7 @@ date = datetime.datetime.now().strftime('%d%m%Y')
 # Date and time when the script is run
 dateAndTime = datetime.datetime.now().strftime('%d_%m_%Y,%H_%M_%S')
 
-productMasterFileName = 'MasterProductDetail'
-
-pathToSheetToBeUploaded = os.path.join('tagger', 'tagged', ('Tagged_' + productMasterFileName + '_' + date + '.csv'))
+dateUploadedHeader = 'dateUploaded'
 
 # Creating and setting up a logger
 logDirectoryName = os.path.join('logs', 'sheet_uploader_logs')
@@ -41,37 +40,148 @@ sys.excepthook = setExceptionHandler
 
 logger.info('Sheet uploader script is running...')
 
-with open(pathToSheetToBeUploaded, newline='') as file:
-    reader = csv.reader(file)
-    csvValues = list(reader)
+configFileName = 'config.yaml'
+with open(configFileName) as configFile:
+    configs = yaml.load(configFile, Loader=yaml.FullLoader)
+productMasterFileName = 'MasterProductDetail'
+defaultPathToSheetToBeUploaded = os.path.join('tagger', 'tagged', ('Tagged_' + productMasterFileName + '_' + date + '.csv'))
+historicalData = configs['SheetUploader'].get('historicalData')
 
+def readSheet(filePath):
+    with open(filePath, newline='') as file:
+        reader = csv.reader(file)
+        fileValues = list(reader)
+        return fileValues
+
+csvValues = None
+if historicalData != None and historicalData.lower() == 'true':
+    pathToSheetToBeUploaded = configs['SheetUploader'].get('pathToSheetToBeUploaded')
+    logger.info('Historical data upload is activated.')
+    if pathToSheetToBeUploaded != None:
+        logger.info('Uploading the sheet specified in config file...')
+        try:
+            csvValues = readSheet(pathToSheetToBeUploaded)
+        except FileNotFoundError:
+            logger.error('The sheet at ' + pathToSheetToBeUploaded + ' is not found. Uploading failed with the following error:')
+            logger.error(traceback.format_exc())
+    else:
+        logger.error('No upload sheet path specified in config file.')
+else:
+    logger.info('Uploading the daily tagged sheet ' + defaultPathToSheetToBeUploaded + '...')
+    try:
+        csvValues = readSheet(defaultPathToSheetToBeUploaded)
+    except FileNotFoundError:
+        logger.error('The sheet at ' + defaultPathToSheetToBeUploaded + ' is not found. Uploading failed with the following error:')
+        logger.error(traceback.format_exc())
+if csvValues == None:
+    logger.info('Finished running script.')
+    exit()
+    
+uploadMode = configs['SheetUploader'].get('uploadMode')
 def batch_update_values(spreadsheet_id, range_name,
                         value_input_option, _values):
-    
+
+    rowsToAppend = []
     creds, _ = google.auth.default()
     try:
         service = build('sheets', 'v4', credentials=creds)
-        data = [
-            {
-                'range': range_name,
-                'values': _values
-            },
-        ]
-        body = {
-            'valueInputOption': value_input_option,
-            'data': data
-        }
-        result = service.spreadsheets().values().batchUpdate(
-            spreadsheetId=spreadsheet_id, body=body).execute()
-        logger.info(f"{(result.get('totalUpdatedCells'))} cells updated.")
+        cellsUpdated = 0
+        if uploadMode == 'overwrite':
+            logger.info('Upload mode is set to overwrite. Overwriting all data in sheet...')
+            result = service.spreadsheets().values().clear(
+                spreadsheetId=spreadsheet_id, range=range_name).execute()
+            data = [
+                {
+                    'range': range_name,
+                    'values': _values
+                },
+            ]
+            body = {
+                'valueInputOption': value_input_option,
+                'data': data
+            }
+            result = service.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id, body=body).execute()
+            cellsUpdated = result.get('totalUpdatedCells')
+            range_name = nameOfSheetToBeUpdated + '!X1:X' + str(len(_values))
+            listDateUploaded = [date]
+            dateList = [[dateUploadedHeader]]
+            for n in range(1, len(_values)):
+                dateList.append(listDateUploaded)
+            data = [
+                {
+                    'range': range_name,
+                    'values': dateList
+                }
+            ]
+            body = {
+                'valueInputOption': value_input_option,
+                'data': data
+            }
+            result = service.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id, body=body).execute()
+            cellsUpdated = cellsUpdated + result.get('totalUpdatedCells')
+            logger.info(f"{(cellsUpdated)} cell(s) updated.")
+        else:
+            if uploadMode == 'append':
+                logger.info('Upload mode is set to append. Appending new data to sheet.')
+            else:
+                logger.info('Upload mode is not set to a valid value. Using default; appending new data to sheet...')
+            updateRange = nameOfSheetToBeUpdated + '!A:W'
+            result = service.spreadsheets().values().batchGet(
+                spreadsheetId=spreadsheet_id, ranges=updateRange).execute()
+            ranges = result.get('valueRanges', [])
+            sheetRows = ranges[0].get('values')
+            if sheetRows != None:
+                body = {
+                    'values': [[dateUploadedHeader]]
+                }
+                result = service.spreadsheets().values().update(
+                    spreadsheetId=spreadsheet_id, range=(nameOfSheetToBeUpdated + '!X1:X1'),
+                    valueInputOption=value_input_option, body=body).execute()
+                for i in _values:
+                    if i[22] == '':
+                        del i[22]
+                    if i not in sheetRows:
+                        rowsToAppend.append(i)
+            else:
+                rowsToAppend = _values
+            body = {
+                'values': rowsToAppend
+            }
+            result = service.spreadsheets().values().append(
+                spreadsheetId=spreadsheet_id, range=range_name,
+                valueInputOption=value_input_option, body=body).execute()
+            cellsUpdated = result.get('updates').get('updatedCells')
+            range_name = nameOfSheetToBeUpdated + '!X' + str(len(sheetRows) + 1) + ':X' + str(len(sheetRows) + len(rowsToAppend))
+            listDateUploaded = [date]
+            dateList = []
+            for n in range(1, len(rowsToAppend) + 1):
+                dateList.append(listDateUploaded)
+            data = [
+                {
+                    'range': range_name,
+                    'values': dateList
+                }
+            ]
+            body = {
+                'valueInputOption': value_input_option,
+                'data': data
+            }
+            result = service.spreadsheets().values().batchUpdate(
+                spreadsheetId=spreadsheet_id, body=body).execute()
+            cellsUpdated = cellsUpdated + result.get('totalUpdatedCells')
+            logger.info(f"{(cellsUpdated)} cell(s) appended.")
         return result
     except HttpError as error:
         logger.error(f"An error occurred: {error}")
         return error
     
 if __name__ == '__main__':
-    batch_update_values('14YwSVgEXUiaF65ej7NonLMOnym_InBsPWIj3r60N3l4',
-                        'Sheet1', 'USER_ENTERED',
+    spreadsheetId = configs['SheetUploader'].get('spreadsheetId')
+    nameOfSheetToBeUpdated = configs['SheetUploader'].get('nameOfSheetToBeUpdated')
+    batch_update_values(spreadsheetId,
+                        nameOfSheetToBeUpdated, 'RAW',
                         csvValues)
 
 logger.info('Finished running script.')

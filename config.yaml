@@ -1,23 +1,32 @@
-Pattern:
-  - checkFields: ["description", "additionalInfo", "tierAdditionalInfo", "additionalValue"]
-    overwrite: "False"
-    fillFields:
-      - repaymentType:
-          INTEREST_ONLY: ["interest only", "i/o", "io", "int only", "intonly"]
-          PRINCIPAL_AND_INTEREST: ["principal and interest", "p&i", "p & i", "principle and interest", "pi"]
-      - loanPurpose:
-          INVESTMENT: ["inv", "invest", "investor", "investment"]
-          OWNER_OCCUPIED: ["owner occupied", "oo", "occ"]
-          exceptions: 
-            "owner occupied": ["Not available for the purpose of owner occupied"]
-  - checkFields: ["productId"]
-    overwrite: "False"
-    fillFields:
-      - repaymentType:
-          INTEREST_ONLY: ["interest only", "io", "int only", "intonly", "invio", "ooio", "iohl"]
-          PRINCIPAL_AND_INTEREST: ["principal and interest", "PandI", "principle and interest", "pi", "invpi", "oopi"]
-      - loanPurpose:
-          INVESTMENT: ["inv", "invest", "investor", "investment", "invio", "invpi"]
-          OWNER_OCCUPIED: ["owner occupied", "oo", "occ", "own occupied", "owner occupier", "oopi", "ooio"]
-LVR:
-    fieldsToCheck: ["additionalValue", "tierAdditionalInfo", "description", "additionalInfo"]
+DataTagger:
+  Pattern:
+    - checkFields: ["description", "additionalInfo", "tierAdditionalInfo", "additionalValue"]
+      overwrite: "False"
+      fillFields:
+        - repaymentType:
+            INTEREST_ONLY: ["interest only", "i/o", "io", "int only", "intonly"]
+            PRINCIPAL_AND_INTEREST: ["principal and interest", "p&i", "p & i", "principle and interest", "pi"]
+        - loanPurpose:
+            INVESTMENT: ["inv", "invest", "investor", "investment"]
+            OWNER_OCCUPIED: ["owner occupied", "oo", "occ"]
+            exceptions: 
+              "owner occupied": ["Not available for the purpose of owner occupied"]
+    - checkFields: ["productId", "name"]
+      overwrite: "False"
+      fillFields:
+        - repaymentType:
+            INTEREST_ONLY: ["interest only", "io", "int only", "intonly", "invio", "ooio", "iohl"]
+            PRINCIPAL_AND_INTEREST: ["principal and interest", "PandI", "principle and interest", "pi", "invpi", "oopi"]
+        - loanPurpose:
+            INVESTMENT: ["inv", "invest", "investor", "investment", "invio", "invpi"]
+            OWNER_OCCUPIED: ["owner occupied", "oo", "occ", "own occupied", "owner occupier", "oopi", "ooio"]
+  LVR:
+      fieldsToCheck: ["additionalValue", "tierAdditionalInfo", "description", "additionalInfo"]
+  GoodTag:
+      fieldsToCheck: ["loanPurpose", "repaymentType", "lendingRateType"]
+SheetUploader:
+  spreadsheetId: "14YwSVgEXUiaF65ej7NonLMOnym_InBsPWIj3r60N3l4"
+  nameOfSheetToBeUpdated: "Sheet1"
+  uploadMode: "append"
+  # historicalData: "True"
+  # pathToSheetToBeUploaded: "tagger/tagged/Tagged_MasterProductDetail_15082022.csv"

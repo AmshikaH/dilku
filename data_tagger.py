@@ -38,6 +38,8 @@ maximumValueHeader = 'maximumValue'
 unitOfMeasureHeader = 'unitOfMeasure'
 tierAdditionalInfoHeader = 'tierAdditionalInfo'
 lendingRateTypeHeader = 'lendingRateType'
+productIdHeader = 'productId'
+nameHeader = 'name'
 
 os.makedirs(directoryWithFilesToTag, exist_ok=True)
 
@@ -134,7 +136,13 @@ def updateAdditionalValueUnits(df):
         if re.search('^P[1-9][0-9]*Y$', df.loc[i, additionalValueHeader]) or re.search('^Fixed.[1-9][0-9]*.Year.*', df.loc[i, additionalValueHeader]):
             noOfYears = int(re.findall('[1-9][0-9]*', df.loc[i, additionalValueHeader])[0])
             noOfMonths = 12 * noOfYears
-            additionalValue = 'P' + str(noOfMonths) + 'M'
+            months = 'months' if noOfMonths > 1 else 'month'
+            additionalValue = str(noOfMonths) + ' ' + months
+            df.loc[i, additionalValueHeader] = additionalValue
+        if re.search('^P[1-9][0-9]*M$', df.loc[i, additionalValueHeader]):
+            noOfMonths = int(re.findall('[1-9][0-9]*', df.loc[i, additionalValueHeader])[0])
+            months = 'months' if noOfMonths > 1 else 'month'
+            additionalValue = str(noOfMonths) + ' ' + months
             df.loc[i, additionalValueHeader] = additionalValue
         elif re.search('^.+Term.+[1-9][0-9]*.+Period.+', str(df.loc[i, additionalValueHeader]).replace(' ', '')):
             additionalValueDictionary = ast.literal_eval(df.loc[i, additionalValueHeader])
@@ -144,7 +152,8 @@ def updateAdditionalValueUnits(df):
                 noOfMonths = terms
             else:
                 noOfMonths = 12 * terms
-            additionalValue = 'P' + str(noOfMonths) + 'M'
+            months = 'months' if noOfMonths > 1 else 'month'
+            additionalValue = str(noOfMonths) + ' ' + months
             df.loc[i, additionalValueHeader] = additionalValue
 
 def getValue(df, field, index, pattern):
@@ -154,7 +163,27 @@ def getValue(df, field, index, pattern):
 
 def patternExists(df, field, index, pattern):
     return re.search(pattern, df.loc[index, field], re.IGNORECASE)
-    
+
+def updateAdditionalValue(df):
+    additionalValueEmptyIndices = getEmptyIndices(df, additionalValueHeader)
+    for i in additionalValueEmptyIndices:
+        if df.loc[i, lendingRateTypeHeader] == 'FIXED' or df.loc[i, lendingRateTypeHeader] == 'VARIABLE':
+            if patternExists(df, nameHeader, i, '[0-9][0-9]*.year'):
+                additionalValue = int(getValue(df, nameHeader, i, '[0-9][0-9]*.year')) * 12
+                df.loc[i, additionalValueHeader] = 'P' + str(additionalValue) + 'M'
+            elif patternExists(df, nameHeader, i, '[0-9][0-9]*.*YR'):
+                additionalValue = int(getValue(df, nameHeader, i, '[0-9][0-9]*.*YR')) * 12
+                df.loc[i, additionalValueHeader] = 'P' + str(additionalValue) + 'M'
+            elif patternExists(df, nameHeader, i, '[0-9][0-9]*Y'):
+                additionalValue = int(getValue(df, nameHeader, i, '[0-9][0-9]*Y')) * 12
+                df.loc[i, additionalValueHeader] = 'P' + str(additionalValue) + 'M'
+            elif patternExists(df, nameHeader, i, '[0-9][0-9]*.*mths'):
+                additionalValue = int(getValue(df, nameHeader, i, '[0-9][0-9]*.*mths'))
+                df.loc[i, additionalValueHeader] = 'P' + str(additionalValue) + 'M'
+            elif patternExists(df, nameHeader, i, '[0-9][0-9]*.*month'):
+                additionalValue = int(getValue(df, nameHeader, i, '[0-9][0-9]*.*month'))
+                df.loc[i, additionalValueHeader] = 'P' + str(additionalValue) + 'M'
+                
 def updateLVR(df, fieldsToCheck):
     rowsToAdd = {}
     emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader)
@@ -268,19 +297,22 @@ def tagFile(fileName):
     
     # Check for patterns
     logger.info('Checking for patterns specified in config file ' + configFileName + '...')
-    patterns = configs['Pattern']
+    patterns = configs['DataTagger'].get('Pattern')
     addNeedToFixTagBasedOnFieldData(df, patterns)
 
-    # Update additional value column units
-    logger.info('Updating additionalValue column units...')
     try:
+        # Update additional value for fixed lending rate type
+        logger.info('Checking productId for additional value data for fixed lending rate type...')
+        updateAdditionalValue(df)
+        # Update additional value column units
+        logger.info('Updating additionalValue column units...')
         updateAdditionalValueUnits(df)
     except KeyError:
-        logger.warning('Additional value field not found in file. Skipping changing of units from years to months.')
-
+        logger.warning('Additional value field not found in file. Skipping the update of additional values.')
+    
     # Update LVR details
     logger.info('Updating LVR values...')
-    fieldsToCheck = configs['LVR'].get('fieldsToCheck')
+    fieldsToCheck = configs['DataTagger'].get('LVR').get('fieldsToCheck')
     rowsToAdd = updateLVR(df, fieldsToCheck)
     dfLength = len(df.index)
     for rowIndex in rowsToAdd:
@@ -310,7 +342,10 @@ def tagFile(fileName):
 
     # Add Good tag
     logger.info('Adding Good tags...')
-    goodTagIndices = set(df[lendingRateTypeHeader].index) - getEmptyIndices(df, loanPurposeHeader) - getEmptyIndices(df, repaymentTypeHeader) - getEmptyIndices(df, lendingRateTypeHeader)
+    fieldsToCheck = configs['DataTagger'].get('GoodTag').get('fieldsToCheck')
+    goodTagIndices = set(df[lendingRateTypeHeader].index)
+    for field in fieldsToCheck:
+        goodTagIndices = goodTagIndices - getEmptyIndices(df, field) 
     for i in goodTagIndices:
         df.loc[i, tagHeader] = goodTag
     
