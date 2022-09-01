@@ -103,7 +103,7 @@ def batch_update_values(spreadsheet_id, range_name,
             result = service.spreadsheets().values().batchUpdate(
                 spreadsheetId=spreadsheet_id, body=body).execute()
             cellsUpdated = result.get('totalUpdatedCells')
-            range_name = nameOfSheetToBeUpdated + '!X1:X' + str(len(_values))
+            range_name = nameOfSheetToBeUpdated + '!AA1:AA' + str(len(_values))
             listDateUploaded = [date]
             dateList = [[dateUploadedHeader]]
             for n in range(1, len(_values)):
@@ -127,7 +127,7 @@ def batch_update_values(spreadsheet_id, range_name,
                 logger.info('Upload mode is set to append. Appending new data to sheet.')
             else:
                 logger.info('Upload mode is not set to a valid value. Using default; appending new data to sheet...')
-            updateRange = nameOfSheetToBeUpdated + '!A:W'
+            updateRange = nameOfSheetToBeUpdated + '!A:Z'
             result = service.spreadsheets().values().batchGet(
                 spreadsheetId=spreadsheet_id, ranges=updateRange).execute()
             ranges = result.get('valueRanges', [])
@@ -137,7 +137,7 @@ def batch_update_values(spreadsheet_id, range_name,
                     'values': [[dateUploadedHeader]]
                 }
                 result = service.spreadsheets().values().update(
-                    spreadsheetId=spreadsheet_id, range=(nameOfSheetToBeUpdated + '!X1:X1'),
+                    spreadsheetId=spreadsheet_id, range=(nameOfSheetToBeUpdated + '!AA1:AA1'),
                     valueInputOption=value_input_option, body=body).execute()
                 for i in _values:
                     if i[22] == '':
@@ -153,7 +153,7 @@ def batch_update_values(spreadsheet_id, range_name,
                 spreadsheetId=spreadsheet_id, range=range_name,
                 valueInputOption=value_input_option, body=body).execute()
             cellsUpdated = result.get('updates').get('updatedCells')
-            range_name = nameOfSheetToBeUpdated + '!X' + str(len(sheetRows) + 1) + ':X' + str(len(sheetRows) + len(rowsToAppend))
+            range_name = nameOfSheetToBeUpdated + '!AA' + str(len(sheetRows) + 1) + ':AA' + str(len(sheetRows) + len(rowsToAppend))
             listDateUploaded = [date]
             dateList = []
             for n in range(1, len(rowsToAppend) + 1):
