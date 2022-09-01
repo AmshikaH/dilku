@@ -26,6 +26,8 @@ tagHeader = 'tags'
 # Tags
 goodTag = 'Good'
 
+alt = 'Alt'
+
 # Column names
 rateHeader = 'rate'
 repaymentTypeHeader = 'repaymentType'
@@ -36,6 +38,9 @@ additionalValueHeader = 'additionalValue'
 minimumValueHeader = 'minimumValue'
 maximumValueHeader = 'maximumValue'
 unitOfMeasureHeader = 'unitOfMeasure'
+minimumValueAltHeader = minimumValueHeader + alt
+maximumValueAltHeader = maximumValueHeader + alt
+unitOfMeasureAltHeader = unitOfMeasureHeader + alt
 tierAdditionalInfoHeader = 'tierAdditionalInfo'
 lendingRateTypeHeader = 'lendingRateType'
 productIdHeader = 'productId'
@@ -185,6 +190,15 @@ def updateAdditionalValue(df):
                 df.loc[i, additionalValueHeader] = 'P' + str(additionalValue) + 'M'
                 
 def updateLVR(df, fieldsToCheck):
+    allIndices = set(df[productIdHeader].index)
+    for i in allIndices:
+        if df.loc[i, unitOfMeasureHeader] == 'DOLLAR':
+            df.loc[i, minimumValueAltHeader] = df.loc[i, minimumValueHeader]
+            df.loc[i, maximumValueAltHeader] = df.loc[i, maximumValueHeader]
+            df.loc[i, unitOfMeasureAltHeader] = df.loc[i, unitOfMeasureHeader]
+            df.loc[i, minimumValueHeader] = None
+            df.loc[i, maximumValueHeader] = None
+            df.loc[i, unitOfMeasureHeader] = None
     rowsToAdd = {}
     emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader)
     emptyMaximumValueIndices = getEmptyIndices(df, maximumValueHeader)
@@ -278,7 +292,61 @@ def updateLVR(df, fieldsToCheck):
                         continue
         except KeyError:
             logger.warning('Cannot check field ' + field + ' for LVR data as the field is not found in file.')
+    return rowsToAdd
 
+def updateLVRAlt(df, fieldsToCheck):
+    rowsToAdd = {}
+    emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader)
+    emptyMaximumValueIndices = getEmptyIndices(df, maximumValueHeader)
+    emptyLVRIndices = emptyMinimumValueIndices.union(emptyMaximumValueIndices)
+    for field in fieldsToCheck:
+        logger.info('Checking ' + field + ' for LVR values in an alternate unit of measure...')
+        try:
+            for i in emptyLVRIndices:
+                tierValues = {}
+                if not pd.isnull(df.loc[i, field]):
+                    minimumValue = None
+                    maximumValue = None
+                    unitOfMeasure = None
+                    if patternExists(df, field, i, 'above.*\$[0-9][0-9,]*k|over.*\$[0-9][0-9,]*k|greater.than.*\$[0-9][0-9,]*k|\$[0-9][0-9,]*k.or.more|\$[0-9][0-9,]*k.plus|>.*\$[0-9][0-9,]*k'):
+                        minimumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', re.findall('above.*\$[0-9][0-9,]*k|over.*\$[0-9][0-9,]*k|greater.than.*\$[0-9][0-9,]*k|\$[0-9][0-9,]*k.or.more|\$[0-9][0-9,]*k.plus|>.*\$[0-9][0-9,]*k', df.loc[i, field], re.IGNORECASE)[0], re.IGNORECASE)[0]))
+                    elif patternExists(df, field, i, 'minimum.*\$[0-9][0-9,]*|above.*\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over'):
+                        minimumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', re.findall('minimum.*\$[0-9][0-9,]*|above.\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over', df.loc[i, field], re.IGNORECASE)[0])[0])
+
+                    if patternExists(df, field, i, 'up.to.*\$[0-9][0-9,]*k|below.\$[0-9][0-9,]*k|under.\$[0-9][0-9,]*k|less.than.\$[0-9][0-9,]*k|<.*\$[0-9][0-9,]*k'):
+                        maximumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', re.findall('up.to.*\$[0-9][0-9,]*k|below.\$[0-9][0-9,]*k|under.\$[0-9][0-9,]*k|less.than.\$[0-9][0-9,]*k|<.*\$[0-9][0-9,]*k', df.loc[i, field], re.IGNORECASE)[0], re.IGNORECASE)[0]))
+                    elif patternExists(df, field, i, 'up.to.*\$[0-9][0-9,]*|below.\$[0-9][0-9,]*|under.\$[0-9][0-9,]*|less.than.\$[0-9][0-9,]*|<.\$[0-9][0-9,]*'):
+                        maximumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', re.findall('up.to.*\$[0-9][0-9,]*|below.\$[0-9][0-9,]*|under.\$[0-9][0-9,]*|less.than.\$[0-9][0-9,]*|<.\$[0-9][0-9,]*', df.loc[i, field], re.IGNORECASE)[0])[0])
+                    
+                    if patternExists(df, field, i, '\$[0-9][0-9,]*k.{1,4}\$[0-9][0-9,]*k'):
+                        text = re.findall('\$[0-9][0-9,]*k.{1,4}\$[0-9][0-9,]*k', df.loc[i, field], re.IGNORECASE)[0]
+                        minimumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', text, re.IGNORECASE)[0]))
+                        maximumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', text, re.IGNORECASE)[1]))
+                    elif patternExists(df, field, i, '\$[0-9][0-9,]*.{1,4}\$[0-9][0-9,]*|\$[0-9][0-9,]*.to.[0-9][0-9,]*'):
+                        text = re.findall('\$[0-9][0-9,]*.{1,4}\$[0-9][0-9,]*|\$[0-9][0-9,]*.to.[0-9][0-9,]*', df.loc[i, field], re.IGNORECASE)[0]
+                        minimumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', text, re.IGNORECASE)[0])
+                        maximumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*|[0-9][0-9,]*', text, re.IGNORECASE)[1])
+                        
+                    if minimumValue != None or maximumValue != None:
+                        unitOfMeasure = 'DOLLAR'
+                    else:
+                        continue
+                    
+                    tierValues[minimumValueHeader] = minimumValue
+                    tierValues[maximumValueHeader] = maximumValue
+                    tierValues[unitOfMeasureHeader] = unitOfMeasure
+  
+                    if i in rowsToAdd:
+                        row = rowsToAdd.get(i)
+                        minimumValue = minumumValue if row.get(minimumValueAltHeader) == None else row.get(minimumValueHeader)
+                        maximumValue = maximumValue if row.get(maximumValueAltHeader) == None else row.get(maximumValueHeader)
+                        unitOfMeasure = unitOfMeasure if row.get(unitOfMeasureAltHeader) == None else row.get(unitOfMeasureHeader)
+                        continue
+                    elif unitOfMeasure != None:
+                        rowsToAdd[i] = tierValues
+                        continue
+        except KeyError:
+            logger.warning('Cannot check field ' + field + ' for LVR data in an alternate unit of measure as the field is not found in file.')
     return rowsToAdd
     
 def tagFile(fileName):
@@ -291,9 +359,14 @@ def tagFile(fileName):
     try:
         df = pd.read_csv(os.path.join(directoryWithFilesToTag, fileName), encoding='utf-8')
     except UnicodeDecodeError:
+        print('yo')
         df = pd.read_csv(os.path.join(directoryWithFilesToTag, fileName), encoding='cp1252')
         
     df[tagHeader] = None
+
+    df.insert(loc=20, column='minimumValueAlt', value=None)
+    df.insert(loc=21, column='maximumValueAlt', value=None)
+    df.insert(loc=22, column='unitOfMeasureAlt', value=None)
     
     # Check for patterns
     logger.info('Checking for patterns specified in config file ' + configFileName + '...')
@@ -340,6 +413,31 @@ def tagFile(fileName):
             df.loc[dfLength, unitOfMeasureHeader] = values.get(unitOfMeasureHeader)
             dfLength += 1
 
+    # Split LVR data by units
+    dollarRowsToAdd = updateLVRAlt(df, fieldsToCheck)
+    for rowIndex in dollarRowsToAdd:
+        write = False
+        row = df.iloc[rowIndex]
+        values = dollarRowsToAdd.get(rowIndex)
+        minValue = df.loc[rowIndex, minimumValueAltHeader]
+        maxValue = df.loc[rowIndex, maximumValueAltHeader]
+        unitOfMeasure = df.loc[rowIndex, unitOfMeasureAltHeader]
+        if pd.isnull(minValue) and pd.isnull(maxValue):
+            df.loc[rowIndex, minimumValueAltHeader] = values.get(minimumValueAltHeader)
+            df.loc[rowIndex, maximumValueAltHeader] = values.get(maximumValueAltHeader)
+            df.loc[rowIndex, unitOfMeasureAltHeader] = values.get(unitOfMeasureAltHeader)
+            continue
+        if pd.isnull(minValue) and values.get(minimumValueAltHeader) is not None:
+            write = True
+        elif pd.isnull(maxValue) and values.get(maximumValueAltHeader) is not None:
+            write = True
+        if write:
+            df.loc[dfLength] = row
+            df.loc[dfLength, minimumValueAltHeader] = values.get(minimumValueAltHeader)
+            df.loc[dfLength, maximumValueAltHeader] = values.get(maximumValueAltHeader)
+            df.loc[dfLength, unitOfMeasureAltHeader] = values.get(unitOfMeasureAltHeader)
+            dfLength += 1
+    
     # Add Good tag
     logger.info('Adding Good tags...')
     fieldsToCheck = configs['DataTagger'].get('GoodTag').get('fieldsToCheck')
