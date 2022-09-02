@@ -192,7 +192,7 @@ def processJsonFile(directoryName, jsonFileName):
 
         if lendingRates == None or len(lendingRates) == 0:
             row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName, applicationUri,
-                   '', '', '', '', '', '', '', '', '', '', '', '', '', description]
+                   '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', description]
             rows.append(row)
             return
 
@@ -216,21 +216,30 @@ def processJsonFile(directoryName, jsonFileName):
             loanPurpose = i.get('loanPurpose')
             additionalValue = i.get('additionalValue')
             additionalInfo = i.get('additionalInfo')
-            minimumValue = None # mandatory
+            minimumValue = None
             maximumValue = None
-            unitOfMeasure = None # mandatory
+            unitOfMeasure = None
+            minimumValueAlt = None
+            maximumValueAlt = None
+            unitOfMeasureAlt = None
+            tierAdditionalInfo = ''
             tiers = i.get('tiers')
             if tiers != None and len(tiers) != 0:
                 for x in tiers:
-                    minimumValue = x.get('minimumValue')
-                    maximumValue = x.get('maximumValue')
-                    unitOfMeasure = x.get('unitOfMeasure')
-                    tierAdditionalInfo = x.get('additionalInfo')
-
+                    tierAdditionalInfo = tierAdditionalInfo + (x.get('additionalInfo') if x.get('additionalInfo') != None else '')
+                    if x.get('unitOfMeasure') == 'DOLLAR':
+                        minimumValueAlt = x.get('minimumValue')
+                        maximumValueAlt = x.get('maximumValue')
+                        unitOfMeasureAlt = x.get('unitOfMeasure')
+                    else:
+                        minimumValue = x.get('minimumValue')
+                        maximumValue = x.get('maximumValue')
+                        unitOfMeasure = x.get('unitOfMeasure')
+                        
                     # The following checks for the mandatory fields;
                     # if either of these are not found, the relevant
                     # tier will be skipped.
-                    if minimumValue == None or unitOfMeasure == None:
+                    if (minimumValue == None and minimumValueAlt == None) or (unitOfMeasure == None and unitOfMeasureAlt == None):
                         logger.warn('Skipping tier in file ' + jsonFileName + ' since one or more mandatory '
                                     + 'fields regarding the tier are not found.')
                         continue
@@ -239,18 +248,19 @@ def processJsonFile(directoryName, jsonFileName):
                         minimumValue = (float(minimumValue) * 100)
                         if maximumValue != None and float(maximumValue) < 1:
                             maximumValue = (float(maximumValue) * 100)
-                    row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
-                           applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
-                           repaymentType, loanPurpose, additionalValue, additionalInfo, minimumValue, maximumValue,
-                           unitOfMeasure, tierAdditionalInfo, description]
-                    rows.append(row)
+                    
+                row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
+                       applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
+                       repaymentType, loanPurpose, additionalValue, additionalInfo, minimumValue, maximumValue,
+                       unitOfMeasure, minimumValueAlt, maximumValueAlt, unitOfMeasureAlt, tierAdditionalInfo, description]
+                rows.append(row)
             else:
                 # The tiers are an optional field of data.
                 # If a lending rate has no tiers, the fields
                 # related to tiers will be left empty.
                 row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                        applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
-                       repaymentType, loanPurpose, additionalValue, additionalInfo, '', '', '', '', description]
+                       repaymentType, loanPurpose, additionalValue, additionalInfo, '', '', '', '', '', '', '', description]
                 rows.append(row)
 
 # Setting logger to log uncaught exceptions
@@ -276,7 +286,7 @@ for x in listOfJsonFiles:
 fields = ['productId', 'effectiveFrom', 'lastUpdated', 'productCategory', 'name', 'brand', 'brandName',
           'applicationUri', 'lendingRateType', 'rate', 'comparisonRate', 'calculationFrequency', 'applicationFrequency',
           'repaymentType', 'loanPurpose', 'additionalValue', 'additionalInfo', 'minimumValue', 'maximumValue',
-          'unitOfMeasure', 'tierAdditionalInfo', 'description']
+          'unitOfMeasure', 'minimumValueAlt', 'maximumValueAlt', 'unitOfMeasureAlt', 'tierAdditionalInfo', 'description']
 csvFileDirectory = 'csvOutputFiles'
 os.makedirs(csvFileDirectory, exist_ok=True)
 csvFileNameFormat = 'MasterProductDetail_{}.csv'

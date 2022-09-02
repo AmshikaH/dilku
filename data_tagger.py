@@ -190,15 +190,6 @@ def updateAdditionalValue(df):
                 df.loc[i, additionalValueHeader] = 'P' + str(additionalValue) + 'M'
                 
 def updateLVR(df, fieldsToCheck):
-    allIndices = set(df[productIdHeader].index)
-    for i in allIndices:
-        if df.loc[i, unitOfMeasureHeader] == 'DOLLAR':
-            df.loc[i, minimumValueAltHeader] = df.loc[i, minimumValueHeader]
-            df.loc[i, maximumValueAltHeader] = df.loc[i, maximumValueHeader]
-            df.loc[i, unitOfMeasureAltHeader] = df.loc[i, unitOfMeasureHeader]
-            df.loc[i, minimumValueHeader] = None
-            df.loc[i, maximumValueHeader] = None
-            df.loc[i, unitOfMeasureHeader] = None
     rowsToAdd = {}
     emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader)
     emptyMaximumValueIndices = getEmptyIndices(df, maximumValueHeader)
@@ -283,7 +274,7 @@ def updateLVR(df, fieldsToCheck):
   
                     if i in rowsToAdd:
                         row = rowsToAdd.get(i)
-                        minimumValue = minumumValue if row.get(minimumValueHeader) == None else row.get(minimumValueHeader)
+                        minimumValue = minimumValue if row.get(minimumValueHeader) == None else row.get(minimumValueHeader)
                         maximumValue = maximumValue if row.get(maximumValueHeader) == None else row.get(maximumValueHeader)
                         unitOfMeasure = unitOfMeasure if row.get(unitOfMeasureHeader) == None else row.get(unitOfMeasureHeader)
                         continue
@@ -296,8 +287,8 @@ def updateLVR(df, fieldsToCheck):
 
 def updateLVRAlt(df, fieldsToCheck):
     rowsToAdd = {}
-    emptyMinimumValueIndices = getEmptyIndices(df, minimumValueHeader)
-    emptyMaximumValueIndices = getEmptyIndices(df, maximumValueHeader)
+    emptyMinimumValueIndices = getEmptyIndices(df, minimumValueAltHeader)
+    emptyMaximumValueIndices = getEmptyIndices(df, maximumValueAltHeader)
     emptyLVRIndices = emptyMinimumValueIndices.union(emptyMaximumValueIndices)
     for field in fieldsToCheck:
         logger.info('Checking ' + field + ' for LVR values in an alternate unit of measure...')
@@ -310,14 +301,14 @@ def updateLVRAlt(df, fieldsToCheck):
                     unitOfMeasure = None
                     if patternExists(df, field, i, 'above.*\$[0-9][0-9,]*k|over.*\$[0-9][0-9,]*k|greater.than.*\$[0-9][0-9,]*k|\$[0-9][0-9,]*k.or.more|\$[0-9][0-9,]*k.plus|>.*\$[0-9][0-9,]*k'):
                         minimumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', re.findall('above.*\$[0-9][0-9,]*k|over.*\$[0-9][0-9,]*k|greater.than.*\$[0-9][0-9,]*k|\$[0-9][0-9,]*k.or.more|\$[0-9][0-9,]*k.plus|>.*\$[0-9][0-9,]*k', df.loc[i, field], re.IGNORECASE)[0], re.IGNORECASE)[0]))
-                    elif patternExists(df, field, i, 'minimum.*\$[0-9][0-9,]*|above.*\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over'):
-                        minimumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', re.findall('minimum.*\$[0-9][0-9,]*|above.\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over', df.loc[i, field], re.IGNORECASE)[0])[0])
-
+                    elif patternExists(df, field, i, 'minimum.*\$[0-9][0-9,]*|above.*\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over|>.*\$[0-9][0-9,]*'):
+                        minimumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', re.findall('minimum.*\$[0-9][0-9,]*|above.\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over|>.*\$[0-9][0-9,]*', df.loc[i, field], re.IGNORECASE)[0])[0])
+                        
                     if patternExists(df, field, i, 'up.to.*\$[0-9][0-9,]*k|below.\$[0-9][0-9,]*k|under.\$[0-9][0-9,]*k|less.than.\$[0-9][0-9,]*k|<.*\$[0-9][0-9,]*k'):
                         maximumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', re.findall('up.to.*\$[0-9][0-9,]*k|below.\$[0-9][0-9,]*k|under.\$[0-9][0-9,]*k|less.than.\$[0-9][0-9,]*k|<.*\$[0-9][0-9,]*k', df.loc[i, field], re.IGNORECASE)[0], re.IGNORECASE)[0]))
-                    elif patternExists(df, field, i, 'up.to.*\$[0-9][0-9,]*|below.\$[0-9][0-9,]*|under.\$[0-9][0-9,]*|less.than.\$[0-9][0-9,]*|<.\$[0-9][0-9,]*'):
-                        maximumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', re.findall('up.to.*\$[0-9][0-9,]*|below.\$[0-9][0-9,]*|under.\$[0-9][0-9,]*|less.than.\$[0-9][0-9,]*|<.\$[0-9][0-9,]*', df.loc[i, field], re.IGNORECASE)[0])[0])
-                    
+                    elif patternExists(df, field, i, 'maximum.*\$[0-9][0-9,]*|up.to.*\$[0-9][0-9,]*|below.\$[0-9][0-9,]*|under.\$[0-9][0-9,]*|less.than.\$[0-9][0-9,]*|<.\$[0-9][0-9,]*'):
+                        maximumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', re.findall('maximum.*\$[0-9][0-9,]*|up.to.*\$[0-9][0-9,]*|below.\$[0-9][0-9,]*|under.\$[0-9][0-9,]*|less.than.\$[0-9][0-9,]*|<.*\$[0-9][0-9,]*', df.loc[i, field], re.IGNORECASE)[0])[0])
+                        
                     if patternExists(df, field, i, '\$[0-9][0-9,]*k.{1,4}\$[0-9][0-9,]*k'):
                         text = re.findall('\$[0-9][0-9,]*k.{1,4}\$[0-9][0-9,]*k', df.loc[i, field], re.IGNORECASE)[0]
                         minimumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', text, re.IGNORECASE)[0]))
@@ -326,21 +317,21 @@ def updateLVRAlt(df, fieldsToCheck):
                         text = re.findall('\$[0-9][0-9,]*.{1,4}\$[0-9][0-9,]*|\$[0-9][0-9,]*.to.[0-9][0-9,]*', df.loc[i, field], re.IGNORECASE)[0]
                         minimumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', text, re.IGNORECASE)[0])
                         maximumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*|[0-9][0-9,]*', text, re.IGNORECASE)[1])
-                        
+
                     if minimumValue != None or maximumValue != None:
                         unitOfMeasure = 'DOLLAR'
                     else:
                         continue
                     
-                    tierValues[minimumValueHeader] = minimumValue
-                    tierValues[maximumValueHeader] = maximumValue
-                    tierValues[unitOfMeasureHeader] = unitOfMeasure
+                    tierValues[minimumValueAltHeader] = minimumValue
+                    tierValues[maximumValueAltHeader] = maximumValue
+                    tierValues[unitOfMeasureAltHeader] = unitOfMeasure
   
                     if i in rowsToAdd:
                         row = rowsToAdd.get(i)
-                        minimumValue = minumumValue if row.get(minimumValueAltHeader) == None else row.get(minimumValueHeader)
-                        maximumValue = maximumValue if row.get(maximumValueAltHeader) == None else row.get(maximumValueHeader)
-                        unitOfMeasure = unitOfMeasure if row.get(unitOfMeasureAltHeader) == None else row.get(unitOfMeasureHeader)
+                        minimumValue = minimumValue if row.get(minimumValueAltHeader) == None else row.get(minimumValueAltHeader)
+                        maximumValue = maximumValue if row.get(maximumValueAltHeader) == None else row.get(maximumValueAltHeader)
+                        unitOfMeasure = unitOfMeasure if row.get(unitOfMeasureAltHeader) == None else row.get(unitOfMeasureAltHeader)
                         continue
                     elif unitOfMeasure != None:
                         rowsToAdd[i] = tierValues
@@ -363,10 +354,6 @@ def tagFile(fileName):
         df = pd.read_csv(os.path.join(directoryWithFilesToTag, fileName), encoding='cp1252')
         
     df[tagHeader] = None
-
-    df.insert(loc=20, column='minimumValueAlt', value=None)
-    df.insert(loc=21, column='maximumValueAlt', value=None)
-    df.insert(loc=22, column='unitOfMeasureAlt', value=None)
     
     # Check for patterns
     logger.info('Checking for patterns specified in config file ' + configFileName + '...')
