@@ -21,7 +21,7 @@ DataTagger:
             INVESTMENT: ["inv", "invest", "investor", "investment", "invio", "invpi"]
             OWNER_OCCUPIED: ["owner occupied", "oo", "occ", "own occupied", "owner occupier", "oopi", "ooio"]
   LVR:
-      fieldsToCheck: ["additionalValue", "tierAdditionalInfo", "description", "additionalInfo"]
+      fieldsToCheck: ["additionalValue", "tierAdditionalInfo", "description", "additionalInfo", "name"]
   GoodTag:
       fieldsToCheck: ["loanPurpose", "repaymentType", "lendingRateType"]
 SheetUploader:
