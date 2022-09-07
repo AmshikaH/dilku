@@ -80,7 +80,6 @@ if csvValues == None:
 uploadMode = configs['SheetUploader'].get('uploadMode')
 def batch_update_values(spreadsheet_id, range_name,
                         value_input_option, _values):
-
     rowsToAppend = []
     creds, _ = google.auth.default()
     try:
@@ -103,9 +102,18 @@ def batch_update_values(spreadsheet_id, range_name,
             result = service.spreadsheets().values().batchUpdate(
                 spreadsheetId=spreadsheet_id, body=body).execute()
             cellsUpdated = result.get('totalUpdatedCells')
-            range_name = nameOfSheetToBeUpdated + '!AA1:AA' + str(len(_values))
+            range_name = nameOfSheetToBeUpdated + '!AA1:AA1'
+            body = {
+                'range': range_name,
+                'majorDimension': 'COLUMNS',
+                'values': [[dateUploadedHeader]]
+            }
+            result = service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id, body=body, range=range_name, valueInputOption=value_input_option).execute()
+            cellsUpdated = cellsUpdated + result.get('updates').get('updatedCells')
+            range_name = nameOfSheetToBeUpdated + '!AA2:AA' + str(len(_values))
             listDateUploaded = [date]
-            dateList = [[dateUploadedHeader]]
+            dateList = []
             for n in range(1, len(_values)):
                 dateList.append(listDateUploaded)
             data = [
@@ -124,7 +132,7 @@ def batch_update_values(spreadsheet_id, range_name,
             logger.info(f"{(cellsUpdated)} cell(s) updated.")
         else:
             if uploadMode == 'append':
-                logger.info('Upload mode is set to append. Appending new data to sheet.')
+                logger.info('Upload mode is set to append. Appending new data to sheet...')
             else:
                 logger.info('Upload mode is not set to a valid value. Using default; appending new data to sheet...')
             updateRange = nameOfSheetToBeUpdated + '!A:Z'
@@ -133,15 +141,9 @@ def batch_update_values(spreadsheet_id, range_name,
             ranges = result.get('valueRanges', [])
             sheetRows = ranges[0].get('values')
             if sheetRows != None:
-                body = {
-                    'values': [[dateUploadedHeader]]
-                }
-                result = service.spreadsheets().values().update(
-                    spreadsheetId=spreadsheet_id, range=(nameOfSheetToBeUpdated + '!AA1:AA1'),
-                    valueInputOption=value_input_option, body=body).execute()
                 for i in _values:
-                    if i[22] == '':
-                        del i[22]
+                    if i[25] == '':
+                        del i[25]
                     if i not in sheetRows:
                         rowsToAppend.append(i)
             else:
@@ -152,11 +154,37 @@ def batch_update_values(spreadsheet_id, range_name,
             result = service.spreadsheets().values().append(
                 spreadsheetId=spreadsheet_id, range=range_name,
                 valueInputOption=value_input_option, body=body).execute()
-            cellsUpdated = result.get('updates').get('updatedCells')
-            range_name = nameOfSheetToBeUpdated + '!AA' + str(len(sheetRows) + 1) + ':AA' + str(len(sheetRows) + len(rowsToAppend))
+            cellsUpdated = (result.get('updates').get('updatedCells') if result.get('updates').get('updatedCells') != None else 0)
+            dateHeaderRange = nameOfSheetToBeUpdated + '!AA1:AA1'
+            firstRowRange = nameOfSheetToBeUpdated + '!1:1'
+            result = service.spreadsheets().values().batchGet(
+                spreadsheetId=spreadsheet_id, ranges=firstRowRange).execute()
+            firstRowValues = result.get('valueRanges', [])[0].get('values')[0]
+            if len(firstRowValues) > 26:
+                if firstRowValues[26] != dateUploadedHeader:
+                    body = {
+                        'values': [[dateUploadedHeader]]
+                    }
+                    result = service.spreadsheets().values().update(
+                        spreadsheetId=spreadsheet_id, range=dateHeaderRange,
+                        valueInputOption=value_input_option, body=body).execute()
+                    cellsUpdated = cellsUpdated + result.get('updatedCells')
+            else:
+                body = {
+                    'range': dateHeaderRange,
+                    'majorDimension': 'COLUMNS',
+                    'values': [[dateUploadedHeader]]
+                }
+                result = service.spreadsheets().values().append(
+                spreadsheetId=spreadsheet_id, body=body, range=dateHeaderRange,
+                valueInputOption=value_input_option).execute()
+                cellsUpdated = cellsUpdated + result.get('updates').get('updatedCells')
+            existingRowLength = len(sheetRows) if sheetRows != None else 1
+            dateCellsLength = len(rowsToAppend) if sheetRows != None else (len(rowsToAppend) - 1)
+            range_name = nameOfSheetToBeUpdated + '!AA' + str(existingRowLength + 1) + ':AA' + str(existingRowLength + dateCellsLength)
             listDateUploaded = [date]
             dateList = []
-            for n in range(1, len(rowsToAppend) + 1):
+            for n in range(1, dateCellsLength + 1):
                 dateList.append(listDateUploaded)
             data = [
                 {
@@ -170,7 +198,7 @@ def batch_update_values(spreadsheet_id, range_name,
             }
             result = service.spreadsheets().values().batchUpdate(
                 spreadsheetId=spreadsheet_id, body=body).execute()
-            cellsUpdated = cellsUpdated + result.get('totalUpdatedCells')
+            cellsUpdated = (0 if cellsUpdated == None else cellsUpdated) + (0 if result.get('totalUpdatedCells') == None else result.get('totalUpdatedCells'))
             logger.info(f"{(cellsUpdated)} cell(s) appended.")
         return result
     except HttpError as error:
