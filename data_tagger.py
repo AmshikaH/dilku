@@ -203,8 +203,8 @@ def findPatterns(df, indicesToCheck, field):
                     minimumValue = re.findall('[0-9][0-9]*', text)[0]
                     maximumValue = re.findall('[0-9][0-9]*', text)[1]
             else:
-                if patternExists(value, 'Maximum.LVR.*:.[0-9][0-9]*%|.*LVR.*up.to.*[0-9][0-9]*%.*|to.[0-9][0-9]*%.*LVR|LVR.to.[0-9][0-9]*%|LVR.?<[0-9][0-9]*|.*<.*[0-9][0-9]*.*|.*[0-9][0-9]*%.*>.*|.*LVR.*[0-9][0-9]*%.or.less.*|.*LVR.*[0-9][0-9]*%.and.under.*|Max.LVR.[0-9][0-9]*%.*|under.*[0-9][0-9]*%.*LVR|LVR.under.*[0-9][0-9]*%|LVR.is.under.*[0-9][0-9]*%|LVR.is.below.*[0-9][0-9]*%|LVR.is.lower.*or.equal.to.[0-9][0-9]*%|LVR.LE.[0-9][0-9]*%|.*less.than.*[0-9][0-9]*%|.*not.exceeding.*[0-9][0-9]*%|.*capped.at.total.lend.of.*[0-9][0-9]*%|[0-9][0-9]*%.maximum.*LVR'):
-                    maximumValue = getValue(value, 'Maximum.LVR.*:.[0-9][0-9]*%|up.to.*[0-9][0-9]*.*|to.[0-9][0-9]*.*|LVR.to.[0-9][0-9]*%|LVR.?<[0-9][0-9]*|<.*[0-9][0-9]*.*|[0-9][0-9]*%.*>|LVR.*[0-9][0-9]*%.or.less|LVR.*[0-9][0-9]*%.and.under|Max.LVR.[0-9][0-9]*%|under.*[0-9][0-9]*%.*LVR|LVR.under.*[0-9][0-9]*%|LVR.is.under.*[0-9][0-9]*%|LVR.is.below.*[0-9][0-9]*%|LVR.is.lower.*.or.equal.to.[0-9][0-9]*%|LVR.LE.[0-9][0-9]*%|less.than.*[0-9][0-9]*%|not.exceeding.*[0-9][0-9]*%|capped.at.total.lend.of.*[0-9][0-9]*%|[0-9][0-9]*%.maximum.*LVR')
+                if patternExists(value, '≤[0-9][0-9]*.*%.LVR|Maximum.LVR.*:.[0-9][0-9]*%|.*LVR.*up.to.*[0-9][0-9]*%.*|to.[0-9][0-9]*%.*LVR|LVR.to.[0-9][0-9]*%|LVR.?<[0-9][0-9]*|.*<.*[0-9][0-9]*.*|.*[0-9][0-9]*%.*>.*|.*LVR.*[0-9][0-9]*%.or.less.*|.*LVR.*[0-9][0-9]*%.and.under.*|Max.LVR.[0-9][0-9]*%.*|under.*[0-9][0-9]*%.*LVR|LVR.under.*[0-9][0-9]*%|LVR.is.under.*[0-9][0-9]*%|LVR.is.below.*[0-9][0-9]*%|LVR.is.lower.*or.equal.to.[0-9][0-9]*%|LVR.LE.[0-9][0-9]*%|.*less.than.*[0-9][0-9]*%|.*not.exceeding.*[0-9][0-9]*%|.*capped.at.total.lend.of.*[0-9][0-9]*%|[0-9][0-9]*%.maximum.*LVR'):
+                    maximumValue = getValue(value, '≤[0-9][0-9]*.*%.LVR|Maximum.LVR.*:.[0-9][0-9]*%|up.to.*[0-9][0-9]*.*|to.[0-9][0-9]*.*|LVR.to.[0-9][0-9]*%|LVR.?<[0-9][0-9]*|<.*[0-9][0-9]*.*|[0-9][0-9]*%.*>|LVR.*[0-9][0-9]*%.or.less|LVR.*[0-9][0-9]*%.and.under|Max.LVR.[0-9][0-9]*%|under.*[0-9][0-9]*%.*LVR|LVR.under.*[0-9][0-9]*%|LVR.is.under.*[0-9][0-9]*%|LVR.is.below.*[0-9][0-9]*%|LVR.is.lower.*.or.equal.to.[0-9][0-9]*%|LVR.LE.[0-9][0-9]*%|less.than.*[0-9][0-9]*%|not.exceeding.*[0-9][0-9]*%|capped.at.total.lend.of.*[0-9][0-9]*%|[0-9][0-9]*%.maximum.*LVR')
                 elif patternExists(value, '.*Maximum.LVR.*[0-9][0-9]*%.*'):
                     if patternExists(value, '.*Maximum.LVR.for.owner.occupied.home.loans.is.[0-9][0-9]*%.and.[0-9][0-9]*%.for.investment.loans.*'):
                         text = re.findall('Maximum.LVR.for.owner.occupied.home.loans.is.[0-9][0-9]*%.and.[0-9][0-9]*%.for.investment.loans', value, re.IGNORECASE)[0]
@@ -218,8 +218,8 @@ def findPatterns(df, indicesToCheck, field):
                     maximumValue = getValue(value, 'LVR.[0-9][0-9]*.or.less')
                 elif field == productIdHeader and patternExists(value, 'less[0-9][0-9]*LVR'):
                     maximumValue = getValue(value, 'less[0-9][0-9]*LVR')
-                if patternExists(value, 'Starting.from.[0-9][0-9]*%.LVR|LVR.?>[0-9][0-9]*|.*LVR.*>.*[0-9][0-9]*%.up.to.*|.*>.*[0-9][0-9]*%.*|.*[0-9][0-9]*.?<.*|.*LVR.over.*[0-9][0-9]*%|.*more.than.*[0-9][0-9]*%|.*greater.than.*[0-9][0-9]*%|.*Minimum.LVR.*[0-9][0-9]*%.*|LVR.is.over.*[0-9][0-9]*%'):
-                    minimumValue = getValue(value, 'Starting.from.[0-9][0-9]*%.LVR|LVR.?>[0-9][0-9]*|.*LVR.*>.*[0-9][0-9]*%.*up.to|>.*[0-9][0-9]*.*|[0-9][0-9]*.?<|LVR.over.*[0-9][0-9]*%|more.than.*[0-9][0-9]*%|greater.than.*[0-9][0-9]*%|Minimum.LVR.*[0-9][0-9]*%|LVR.is.over.*[0-9][0-9]*%')
+                if patternExists(value, '≥[0-9][0-9]*.*%.LVR|Starting.from.[0-9][0-9]*%.LVR|LVR.?>[0-9][0-9]*|.*LVR.*>.*[0-9][0-9]*%.up.to.*|.*>.*[0-9][0-9]*%.*|.*[0-9][0-9]*.?<.*|.*LVR.over.*[0-9][0-9]*%|.*more.than.*[0-9][0-9]*%|.*greater.than.*[0-9][0-9]*%|.*Minimum.LVR.*[0-9][0-9]*%.*|LVR.is.over.*[0-9][0-9]*%'):
+                    minimumValue = getValue(value, '≥[0-9][0-9]*.*%.LVR|Starting.from.[0-9][0-9]*%.LVR|LVR.?>[0-9][0-9]*|.*LVR.*>.*[0-9][0-9]*%.*up.to|>.*[0-9][0-9]*.*|[0-9][0-9]*.?<|LVR.over.*[0-9][0-9]*%|more.than.*[0-9][0-9]*%|greater.than.*[0-9][0-9]*%|Minimum.LVR.*[0-9][0-9]*%|LVR.is.over.*[0-9][0-9]*%')
                 elif field == nameHeader and patternExists(value, 'LVR.[0-9][0-9]*.or.more'):
                     minimumValue = getValue(value, 'LVR.[0-9][0-9]*.or.more')
                 if patternExists(value, 'between.[0-9][0-9]*.*[0-9][0-9]*%.*|.*Rate.for.LVR.[0-9][0-9]*%.*-.*[0-9][0-9]*%.*.-.*[0-9][0-9]*|LVR.[0-9][0-9]*%.to.[0-9][0-9]%|LVR.*[0-9][0-9]*.?-.?[0-9][0-9]*%|[0-9][0-9]*%.?-.?[0-9][0-9]*%.LVR'):
@@ -276,14 +276,14 @@ def updateLVRAlt(df, fieldsToCheck):
             for i in emptyLVRIndices:
                 value = df.loc[i, field]
                 tierValues = {}
-                if not pd.isnull(df.loc[i, field]):
+                if not pd.isnull(value):
                     minimumValue = None
                     maximumValue = None
                     unitOfMeasure = None
                     if patternExists(value, 'above.*\$[0-9][0-9,]*k|over.*\$[0-9][0-9,]*k|greater.than.*\$[0-9][0-9,]*k|\$[0-9][0-9,]*k.or.more|\$[0-9][0-9,]*k.plus|>.*\$[0-9][0-9,]*k'):
                         minimumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', re.findall('above.*\$[0-9][0-9,]*k|over.*\$[0-9][0-9,]*k|greater.than.*\$[0-9][0-9,]*k|\$[0-9][0-9,]*k.or.more|\$[0-9][0-9,]*k.plus|>.*\$[0-9][0-9,]*k', value, re.IGNORECASE)[0], re.IGNORECASE)[0]))
-                    elif patternExists(value, 'minimum.*\$[0-9][0-9,]*|above.*\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over|>.*\$[0-9][0-9,]*'):
-                        minimumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', re.findall('minimum.*\$[0-9][0-9,]*|above.\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over|>.*\$[0-9][0-9,]*', value, re.IGNORECASE)[0])[0])
+                    elif patternExists(value, '\$[0-9][0-9,]*.?plus|minimum.*\$[0-9][0-9,]*|above.*\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over|>.*\$[0-9][0-9,]*'):
+                        minimumValue = re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*', re.findall('\$[0-9][0-9,]*.?plus|minimum.*\$[0-9][0-9,]*|above.\$[0-9][0-9,]*|over.*\$[0-9][0-9,]*|greater.than.*\$[0-9][0-9,]*|\$[0-9][0-9,]*.or.more|\$[0-9][0-9,]*.and.above|\$[0-9][0-9,]*.and.over|>.*\$[0-9][0-9,]*', value, re.IGNORECASE)[0])[0])
                     if patternExists(value, 'up.to.*\$[0-9][0-9,]*k|below.\$[0-9][0-9,]*k|under.\$[0-9][0-9,]*k|less.than.\$[0-9][0-9,]*k|<.*\$[0-9][0-9,]*k'):
                         maximumValue = re.sub('[kK]', '000', re.sub('[$,]', '', re.findall('\$[0-9][0-9,]*k', re.findall('up.to.*\$[0-9][0-9,]*k|below.\$[0-9][0-9,]*k|under.\$[0-9][0-9,]*k|less.than.\$[0-9][0-9,]*k|<.*\$[0-9][0-9,]*k', value, re.IGNORECASE)[0], re.IGNORECASE)[0]))
                     elif patternExists(value, 'maximum.*\$[0-9][0-9,]*|up.to.*\$[0-9][0-9,]*|below.\$[0-9][0-9,]*|under.\$[0-9][0-9,]*|less.than.\$[0-9][0-9,]*|<.\$[0-9][0-9,]*'):
@@ -342,7 +342,6 @@ def tagFile(fileName):
     try:
         df = pd.read_csv(os.path.join(directoryWithFilesToTag, fileName), encoding='utf-8')
     except UnicodeDecodeError:
-        print('yo')
         df = pd.read_csv(os.path.join(directoryWithFilesToTag, fileName), encoding='cp1252')
         
     df[tagHeader] = None
