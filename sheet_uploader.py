@@ -11,6 +11,7 @@ import yaml
 
 # Date when the script is run 
 date = datetime.datetime.now().strftime('%d%m%Y')
+hyphenatedDate = datetime.datetime.now().strftime('%d-%m-%Y')
 
 # Date and time when the script is run
 dateAndTime = datetime.datetime.now().strftime('%d_%m_%Y,%H_%M_%S')
@@ -46,11 +47,17 @@ with open(configFileName) as configFile:
 productMasterFileName = 'MasterProductDetail'
 defaultPathToSheetToBeUploaded = os.path.join('tagger', 'tagged', ('Tagged_' + productMasterFileName + '_' + date + '.csv'))
 historicalData = configs['SheetUploader'].get('historicalData')
+uploadMode = configs['SheetUploader'].get('uploadMode')
 
 def readSheet(filePath):
+    fileValues = []
     with open(filePath, newline='') as file:
         reader = csv.reader(file)
-        fileValues = list(reader)
+        if uploadMode == 'overwrite':
+            fileValues = list(reader)
+        else:
+            for row in reader:
+                fileValues.append(row[:25])
         return fileValues
 
 csvValues = None
@@ -77,7 +84,6 @@ if csvValues == None:
     logger.info('Finished running script.')
     exit()
     
-uploadMode = configs['SheetUploader'].get('uploadMode')
 def batch_update_values(spreadsheet_id, range_name,
                         value_input_option, _values):
     rowsToAppend = []
@@ -102,7 +108,7 @@ def batch_update_values(spreadsheet_id, range_name,
             result = service.spreadsheets().values().batchUpdate(
                 spreadsheetId=spreadsheet_id, body=body).execute()
             cellsUpdated = result.get('totalUpdatedCells')
-            range_name = nameOfSheetToBeUpdated + '!AA1:AA1'
+            range_name = nameOfSheetToBeUpdated + '!AD1:AD1'
             body = {
                 'range': range_name,
                 'majorDimension': 'COLUMNS',
@@ -111,8 +117,8 @@ def batch_update_values(spreadsheet_id, range_name,
             result = service.spreadsheets().values().append(
             spreadsheetId=spreadsheet_id, body=body, range=range_name, valueInputOption=value_input_option).execute()
             cellsUpdated = cellsUpdated + result.get('updates').get('updatedCells')
-            range_name = nameOfSheetToBeUpdated + '!AA2:AA' + str(len(_values))
-            listDateUploaded = [date]
+            range_name = nameOfSheetToBeUpdated + '!AD2:AD' + str(len(_values))
+            listDateUploaded = [hyphenatedDate]
             dateList = []
             for n in range(1, len(_values)):
                 dateList.append(listDateUploaded)
@@ -135,15 +141,13 @@ def batch_update_values(spreadsheet_id, range_name,
                 logger.info('Upload mode is set to append. Appending new data to sheet...')
             else:
                 logger.info('Upload mode is not set to a valid value. Using default; appending new data to sheet...')
-            updateRange = nameOfSheetToBeUpdated + '!A:Z'
+            updateRange = nameOfSheetToBeUpdated + '!A:Y'
             result = service.spreadsheets().values().batchGet(
                 spreadsheetId=spreadsheet_id, ranges=updateRange).execute()
             ranges = result.get('valueRanges', [])
             sheetRows = ranges[0].get('values')
             if sheetRows != None:
                 for i in _values:
-                    if i[25] == '':
-                        del i[25]
                     if i not in sheetRows:
                         rowsToAppend.append(i)
             else:
@@ -155,7 +159,7 @@ def batch_update_values(spreadsheet_id, range_name,
                 spreadsheetId=spreadsheet_id, range=range_name,
                 valueInputOption=value_input_option, body=body).execute()
             cellsUpdated = (result.get('updates').get('updatedCells') if result.get('updates').get('updatedCells') != None else 0)
-            dateHeaderRange = nameOfSheetToBeUpdated + '!AA1:AA1'
+            dateHeaderRange = nameOfSheetToBeUpdated + '!AD1:AD1'
             firstRowRange = nameOfSheetToBeUpdated + '!1:1'
             result = service.spreadsheets().values().batchGet(
                 spreadsheetId=spreadsheet_id, ranges=firstRowRange).execute()
@@ -181,8 +185,8 @@ def batch_update_values(spreadsheet_id, range_name,
                 cellsUpdated = cellsUpdated + result.get('updates').get('updatedCells')
             existingRowLength = len(sheetRows) if sheetRows != None else 1
             dateCellsLength = len(rowsToAppend) if sheetRows != None else (len(rowsToAppend) - 1)
-            range_name = nameOfSheetToBeUpdated + '!AA' + str(existingRowLength + 1) + ':AA' + str(existingRowLength + dateCellsLength)
-            listDateUploaded = [date]
+            range_name = nameOfSheetToBeUpdated + '!AD' + str(existingRowLength + 1) + ':AD' + str(existingRowLength + dateCellsLength)
+            listDateUploaded = [hyphenatedDate]
             dateList = []
             for n in range(1, dateCellsLength + 1):
                 dateList.append(listDateUploaded)

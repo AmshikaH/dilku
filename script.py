@@ -15,6 +15,10 @@ dateAndTime = datetime.datetime.now().strftime('%d_%m_%Y,%H_%M_%S')
 # Date when the script is run
 date = datetime.datetime.now().strftime('%d%m%Y')
 
+defaultStartDate = '01-01-2022'
+defaultEndDate = '31-12-9999'
+defaultStatus = 'Yes'
+
 # Timeout value is set to 1s
 timeout = 1
 
@@ -172,6 +176,8 @@ def processJsonFile(directoryName, jsonFileName):
         if productId == None or lastUpdated == None or productCategory == None or name == None or brand == None or description == None:
             logger.error('Skipping ' + jsonFileName + ' as one or more mandatory fields are not found.')
             return
+
+        listingIdPrefix = str(brand) + '_' + str(productId)
         
         # The following are optional fields;
         # if any of these are not found, the file would
@@ -191,13 +197,16 @@ def processJsonFile(directoryName, jsonFileName):
         lendingRates = data['data'].get('lendingRates')
 
         if lendingRates == None or len(lendingRates) == 0:
-            row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName, applicationUri,
-                   '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', description]
+            listingId = listingIdPrefix
+            row = [listingId, productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName, applicationUri,
+                   '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', description, defaultStartDate,
+                   defaultEndDate, defaultStatus]
             rows.append(row)
             return
 
         # If lending rates data is found, the sub-fields
         # will be processed.
+        listingCount = 1
         for i in lendingRates:
             lendingRateType = i.get('lendingRateType')
             rate = i.get('rate')
@@ -248,19 +257,24 @@ def processJsonFile(directoryName, jsonFileName):
                         minimumValue = (float(minimumValue) * 100)
                         if maximumValue != None and float(maximumValue) < 1:
                             maximumValue = (float(maximumValue) * 100)
-                    
-                row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
+                listingId = listingIdPrefix + '_' + str(listingCount) + '_'
+                row = [listingId, productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                        applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
                        repaymentType, loanPurpose, additionalValue, additionalInfo, minimumValue, maximumValue,
-                       unitOfMeasure, minimumValueAlt, maximumValueAlt, unitOfMeasureAlt, tierAdditionalInfo, description]
+                       unitOfMeasure, minimumValueAlt, maximumValueAlt, unitOfMeasureAlt, tierAdditionalInfo, description,
+                       defaultStartDate, defaultEndDate, defaultStatus]
                 rows.append(row)
+                listingCount += 1
             else:
+                listingId = listingIdPrefix + '_' + str(listingCount) + '_'
+                listingCount += 1
                 # The tiers are an optional field of data.
                 # If a lending rate has no tiers, the fields
                 # related to tiers will be left empty.
-                row = [productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
+                row = [listingId, productId, effectiveFrom, lastUpdated, productCategory, name, brand, brandName,
                        applicationUri, lendingRateType, rate, comparisonRate, calculationFrequency, applicationFrequency,
-                       repaymentType, loanPurpose, additionalValue, additionalInfo, '', '', '', '', '', '', '', description]
+                       repaymentType, loanPurpose, additionalValue, additionalInfo, '', '', '', '', '', '', '', description,
+                       defaultStartDate, defaultEndDate, defaultStatus]
                 rows.append(row)
 
 # Setting logger to log uncaught exceptions
@@ -274,7 +288,7 @@ if not os.path.isfile(productMasterFileName):
     exit()
         
 # Dumping product data
-dumpProducts()
+# dumpProducts()
 
 # Processing the files
 directoryPath = os.path.join(mainDataDir, date, 'productDetailFiles')
@@ -283,10 +297,11 @@ for x in listOfJsonFiles:
     processJsonFile(directoryPath, x)
              
 # Writing the processed data to the CSV file
-fields = ['productId', 'effectiveFrom', 'lastUpdated', 'productCategory', 'name', 'brand', 'brandName',
+fields = ['listingId', 'productId', 'effectiveFrom', 'lastUpdated', 'productCategory', 'name', 'brand', 'brandName',
           'applicationUri', 'lendingRateType', 'rate', 'comparisonRate', 'calculationFrequency', 'applicationFrequency',
           'repaymentType', 'loanPurpose', 'additionalValue', 'additionalInfo', 'minimumValue', 'maximumValue',
-          'unitOfMeasure', 'minimumValueAlt', 'maximumValueAlt', 'unitOfMeasureAlt', 'tierAdditionalInfo', 'description']
+          'unitOfMeasure', 'minimumValueAlt', 'maximumValueAlt', 'unitOfMeasureAlt', 'tierAdditionalInfo', 'description',
+          'startDate', 'endDate', 'isCurrent']
 csvFileDirectory = 'csvOutputFiles'
 os.makedirs(csvFileDirectory, exist_ok=True)
 csvFileNameFormat = 'MasterProductDetail_{}.csv'

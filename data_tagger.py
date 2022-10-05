@@ -45,6 +45,7 @@ tierAdditionalInfoHeader = 'tierAdditionalInfo'
 lendingRateTypeHeader = 'lendingRateType'
 productIdHeader = 'productId'
 nameHeader = 'name'
+indexColumnHeader = 'index'
 
 rowsToAdd = {}
 dollarRowsToAdd = {}
@@ -376,7 +377,9 @@ def tagFile(fileName):
     
     os.makedirs(os.path.join(directoryWithFilesToTag, directoryWithTaggedFiles), exist_ok=True)
     taggedFileName = 'Tagged_' + fileName
-    df.to_csv(os.path.join(directoryWithFilesToTag, directoryWithTaggedFiles, taggedFileName), index=False)
+    df.index.name = indexColumnHeader
+    df.index += 1
+    df.to_csv(os.path.join(directoryWithFilesToTag, directoryWithTaggedFiles, taggedFileName))
     logger.info('The file ' + fileName + ' has been tagged and saved.')
     logger.info('CSV file path: ' + os.path.join(os.getcwd(), directoryWithFilesToTag, directoryWithTaggedFiles, taggedFileName))
 

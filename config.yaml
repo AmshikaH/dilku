@@ -25,8 +25,8 @@ DataTagger:
   GoodTag:
       fieldsToCheck: ["loanPurpose", "repaymentType", "lendingRateType"]
 SheetUploader:
-  spreadsheetId: "14YwSVgEXUiaF65ej7NonLMOnym_InBsPWIj3r60N3l4"
+  spreadsheetId: "1fwDBB7f2iNKbGuph-RT0G7UiLH9vx8rvZDjDjQLxKwg"
   nameOfSheetToBeUpdated: "Sheet1"
-  uploadMode: "append"
+  uploadMode: "overwrite"
   # historicalData: "True"
   # pathToSheetToBeUploaded: "tagger/tagged/Tagged_MasterProductDetail_15082022.csv"
