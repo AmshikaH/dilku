@@ -156,7 +156,7 @@ def fillAditionalValue(df, indicesToCheck):
             noOfMonths = int(getValue(value, patternYears)) * 12
             df.loc[i, additionalValueHeader] = str(noOfMonths) + getMonthsSuffix(noOfMonths)
         elif patternExists(value, patternMonths):
-            additionalValue = int(getValue(value, patternMonths))
+            noOfMonths = int(getValue(value, patternMonths))
             df.loc[i, additionalValueHeader] = str(noOfMonths) + getMonthsSuffix(noOfMonths)
             
 def updateAdditionalValue(df):
